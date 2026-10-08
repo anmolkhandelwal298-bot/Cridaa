@@ -1,0 +1,72 @@
+/* Cridaa — custom styles that sit on top of Tailwind (loaded via CDN in index.html). */
+:root {
+  --ink: #0b0f14;
+  --surface: #121821;
+  --card: #161d27;
+  --line: #243041;
+  --volt: #2dff8a;   /* electric green */
+  --bolt: #2ea8ff;   /* electric blue  */
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(900px 400px at 85% -10%, rgba(46, 168, 255, .16), transparent 60%),
+    radial-gradient(800px 380px at 5% -5%, rgba(45, 255, 138, .12), transparent 60%),
+    var(--ink);
+  background-attachment: fixed;
+}
+
+/* Fractional star rating driven by --rating (0–5) */
+.stars {
+  --pct: calc(var(--rating, 0) / 5 * 100%);
+  display: inline-block;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  line-height: 1;
+  background: linear-gradient(90deg, #ffc83d var(--pct), #38465a var(--pct));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Sport chips */
+.chip { transition: background .15s, color .15s, border-color .15s, transform .15s; }
+.chip[aria-pressed="true"] {
+  background: var(--volt);
+  color: #04130a;
+  border-color: var(--volt);
+  box-shadow: 0 0 0 4px rgba(45, 255, 138, .15);
+}
+
+/* Cards */
+.venue-card { transition: transform .2s, border-color .2s, box-shadow .2s; }
+.venue-card:hover { transform: translateY(-3px); border-color: rgba(45, 255, 138, .5); box-shadow: 0 14px 40px -18px rgba(45, 255, 138, .35); }
+
+/* "Prices Coming Soon" badge shimmer */
+.badge-soon {
+  background: linear-gradient(110deg, rgba(46,168,255,.18) 30%, rgba(46,168,255,.38) 50%, rgba(46,168,255,.18) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Loading skeleton */
+.skeleton { background: linear-gradient(100deg, #161d27 40%, #1f2937 50%, #161d27 60%); background-size: 200% 100%; animation: sk 1.4s ease infinite; }
+@keyframes sk { to { background-position: -200% 0; } }
+
+/* Native <dialog> modal */
+dialog#lead-dialog { border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100dvh; }
+dialog#lead-dialog::backdrop { background: rgba(3, 7, 12, .78); backdrop-filter: blur(4px); }
+dialog#lead-dialog[open] { animation: pop .18s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--bolt);
+  outline-offset: 2px;
+}
+input:user-invalid, select:user-invalid { border-color: #ff5d6c; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
