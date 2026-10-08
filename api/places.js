@@ -19,6 +19,7 @@ const SPORT_QUERIES = {
   'box-cricket': 'box cricket turf',
   football: 'football turf',
   badminton: 'badminton court',
+  pickleball: 'pickleball court',
   tennis: 'tennis court',
 };
 
@@ -97,7 +98,7 @@ async function search(q, res) {
   if (lat === null || lng === null) return send(res, 400, { error: 'bad_coordinates' });
   const radius = num(q.radius, 1000, 30000, 8000);
   const sports = String(q.sports || Object.keys(SPORT_QUERIES).join(','))
-    .split(',').map((s) => s.trim()).filter((s) => SPORT_QUERIES[s]).slice(0, 4);
+    .split(',').map((s) => s.trim()).filter((s) => SPORT_QUERIES[s]).slice(0, 5);
   if (!sports.length) return send(res, 400, { error: 'bad_sports' });
 
   const results = await Promise.all(sports.map(async (sport) => {

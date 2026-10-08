@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- ===== SEO: replace cridaa.example with your real domain ===== -->
-  <title>Cridaa – Find Sports Turfs, Box Cricket, Football &amp; Badminton Courts Near You</title>
-  <meta name="description" content="Discover box cricket turfs, football grounds, badminton and tennis courts near you. Compare ratings, distance and photos on Cridaa – prices coming soon.">
+  <title>Cridaa – Find Sports Turfs, Box Cricket, Football, Badminton &amp; Pickleball Courts Near You</title>
+  <meta name="description" content="Discover box cricket turfs, football grounds, badminton, pickleball and tennis courts near you. Compare ratings, distance and photos on Cridaa – prices coming soon.">
   <link rel="canonical" href="https://www.cridaa.example/">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <meta name="theme-color" content="#0b0f14">
+  <meta name="theme-color" content="#f2f9f9">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
   <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Cridaa">
-  <meta property="og:title" content="Cridaa – Sports Turfs &amp; Courts Near You">
-  <meta property="og:description" content="Find box cricket, football, badminton and tennis venues in your neighbourhood.">
+  <meta property="og:title" content="Cridaa – Find your court. Find your people.">
+  <meta property="og:description" content="Find box cricket, football, badminton, pickleball and tennis venues in your neighbourhood.">
   <meta property="og:url" content="https://www.cridaa.example/">
   <meta property="og:image" content="https://www.cridaa.example/og-image.jpg"><!-- add a 1200x630 image -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Cridaa – Sports Turfs &amp; Courts Near You">
-  <meta name="twitter:description" content="Find box cricket, football, badminton and tennis venues in your neighbourhood.">
+  <meta name="twitter:title" content="Cridaa – Find your court. Find your people.">
+  <meta name="twitter:description" content="Find box cricket, football, badminton, pickleball and tennis venues in your neighbourhood.">
 
   <!-- Schema.org: static WebSite + Organization + ItemList of sport categories.
        app.js additionally injects a live ItemList of LocalBusiness (SportsActivityLocation) entries. -->
@@ -34,10 +34,11 @@
       { "@type": "WebSite", "@id": "https://www.cridaa.example/#website", "url": "https://www.cridaa.example/",
         "name": "Cridaa", "description": "Hyper-local sports turf and court directory", "publisher": { "@id": "https://www.cridaa.example/#org" } },
       { "@type": "ItemList", "name": "Sports venues on Cridaa", "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Box Cricket Turfs", "url": "https://www.cridaa.example/?sport=box-cricket" },
-        { "@type": "ListItem", "position": 2, "name": "Football Turfs", "url": "https://www.cridaa.example/?sport=football" },
+        { "@type": "ListItem", "position": 1, "name": "Football Turfs", "url": "https://www.cridaa.example/?sport=football" },
+        { "@type": "ListItem", "position": 2, "name": "Box Cricket Turfs", "url": "https://www.cridaa.example/?sport=box-cricket" },
         { "@type": "ListItem", "position": 3, "name": "Badminton Courts", "url": "https://www.cridaa.example/?sport=badminton" },
-        { "@type": "ListItem", "position": 4, "name": "Tennis Courts", "url": "https://www.cridaa.example/?sport=tennis" }
+        { "@type": "ListItem", "position": 4, "name": "Pickleball Courts", "url": "https://www.cridaa.example/?sport=pickleball" },
+        { "@type": "ListItem", "position": 5, "name": "Tennis Courts", "url": "https://www.cridaa.example/?sport=tennis" }
       ] }
     ]
   }
@@ -46,16 +47,18 @@
   <!-- Fonts + Tailwind (CDN = zero build step; see README for the optional compiled build) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], display: ['Barlow Condensed', 'Inter', 'sans-serif'] },
+          fontFamily: { sans: ['DM Sans', 'system-ui', 'sans-serif'], display: ['Bricolage Grotesque', 'DM Sans', 'sans-serif'] },
           colors: {
-            ink: '#0b0f14', surface: '#121821', card: '#161d27', line: '#243041',
-            volt: '#2dff8a', bolt: '#2ea8ff'
+            ink: '#14353d',      // deep teal-navy for text / active chips
+            teal: { DEFAULT: '#2bbfcf', dark: '#0d8a98' },
+            coral: { DEFAULT: '#f07a62', dark: '#d8604a' },
+            mist: '#f2f9f9', line: '#dce9ea', muted: '#6c8a90'
           }
         }
       }
@@ -64,167 +67,249 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 
-<body class="bg-ink font-sans text-slate-200 antialiased">
-  <a href="#results" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-volt focus:px-3 focus:py-2 focus:text-black">Skip to venues</a>
+<body class="bg-mist font-sans text-ink antialiased">
+  <a href="#explore" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-ink focus:px-3 focus:py-2 focus:text-white">Skip to venues</a>
 
   <!-- ================= HEADER ================= -->
-  <header class="sticky top-0 z-30 border-b border-line bg-ink/85 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-      <a href="/" class="flex items-center gap-2" aria-label="Cridaa home">
-        <img src="/favicon.svg" alt="" width="34" height="34" class="rounded-lg">
-        <span class="font-display text-3xl font-extrabold tracking-wide text-white">CRIDAA<span class="text-volt">.</span></span>
-      </a>
-      <nav aria-label="Primary" class="flex items-center gap-5 text-sm font-medium text-slate-300">
-        <a href="#results" class="hover:text-volt">Venues</a>
-        <a href="#how" class="hidden hover:text-volt sm:inline">How it works</a>
-        <a href="#faq" class="hidden hover:text-volt sm:inline">FAQ</a>
+  <header class="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <a href="/" class="font-display text-3xl font-bold tracking-tight text-teal-dark" aria-label="Cridaa home">Crid<span class="text-coral">a</span>a</a>
+
+      <nav aria-label="Primary" class="hidden items-center gap-10 text-[15px] font-medium text-muted md:flex">
+        <a href="#explore" class="hover:text-ink">Explore</a>
+        <a href="#how" class="hover:text-ink">How it works</a>
+        <a href="#business" class="hover:text-ink">For businesses</a>
       </nav>
+
+      <!-- Location switcher (manual override) -->
+      <div class="relative ml-auto md:ml-0">
+        <button id="loc-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="loc-panel"
+                class="flex items-center gap-2 rounded-xl px-3 py-2 text-[15px] font-semibold hover:bg-mist">
+          <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          <span id="loc-label" class="max-w-[9rem] truncate sm:max-w-[14rem]">Locating…</span>
+          <svg aria-hidden="true" class="h-4 w-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div id="loc-panel" hidden class="absolute right-0 mt-2 w-[min(92vw,22rem)] rounded-2xl border border-line bg-white p-4 shadow-xl">
+          <form id="loc-form" role="search" class="flex gap-2">
+            <label class="sr-only" for="loc-input">Search an area or city</label>
+            <input id="loc-input" type="search" maxlength="120" autocomplete="off" placeholder="Area or city, e.g. Bandra" class="min-w-0 flex-1 rounded-xl border border-line bg-mist px-3 py-2.5 text-sm placeholder:text-muted">
+            <button type="submit" class="rounded-xl bg-ink px-4 text-sm font-semibold text-white">Go</button>
+          </form>
+          <button id="btn-locate" type="button" class="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-teal-dark hover:bg-mist">
+            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+            Use my current location
+          </button>
+          <p class="mb-1 mt-3 px-1 text-xs font-semibold uppercase tracking-wider text-muted">Popular cities</p>
+          <ul id="city-list" class="grid grid-cols-2 gap-1"></ul>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- ================= HERO + LOCATION ================= -->
-    <section aria-labelledby="hero-title" class="mx-auto max-w-7xl px-4 pb-6 pt-10 sm:pt-14">
-      <p class="mb-3 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-widest text-volt">
-        <span class="h-2 w-2 animate-pulse rounded-full bg-volt"></span> Hyper-local turf discovery
-      </p>
-      <h1 id="hero-title" class="font-display text-4xl font-extrabold uppercase leading-[0.95] text-white sm:text-6xl">
-        Find your next <span class="bg-gradient-to-r from-volt to-bolt bg-clip-text text-transparent">game-day turf</span>
-      </h1>
-      <p class="mt-3 max-w-2xl text-slate-400">Box cricket, football, badminton and tennis venues around you – ratings, photos and distance in one place.</p>
+    <!-- ================= HERO ================= -->
+    <section aria-labelledby="hero-title" class="hero-bg">
+      <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pb-20 lg:pt-16">
+        <div>
+          <p class="mb-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-teal-dark">
+            <span class="h-3 w-3 rounded-full bg-coral ring-4 ring-coral/20"></span> Your game starts here
+          </p>
+          <h1 id="hero-title" class="font-display text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            Find your <span class="text-teal">court.</span><br>Find your people.
+          </h1>
+          <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted">Discover the best turfs, courts and sports spaces around you. Compare, call and get playing.</p>
 
-      <!-- Detected location -->
-      <div class="mt-6 flex flex-wrap items-center gap-3" aria-live="polite">
-        <div class="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5">
-          <svg aria-hidden="true" class="h-5 w-5 text-volt" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
-          <span class="text-sm text-slate-400">Showing turfs near</span>
-          <strong id="location-label" class="text-white">Detecting your location…</strong>
+          <!-- Hero search: sport, venue name or area -->
+          <form id="hero-form" role="search" class="mt-8 flex max-w-xl items-center gap-2 rounded-2xl border border-line bg-white p-2 shadow-sm">
+            <svg aria-hidden="true" class="ml-3 h-5 w-5 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/></svg>
+            <label class="sr-only" for="hero-input">Search by sport, venue or area</label>
+            <input id="hero-input" type="search" maxlength="120" autocomplete="off" placeholder="Search by sport, venue or area" class="min-w-0 flex-1 bg-transparent px-1 py-3 placeholder:text-muted focus:outline-none">
+            <button type="submit" class="rounded-xl bg-coral px-6 py-3 font-semibold text-white hover:bg-coral-dark">Search</button>
+          </form>
+          <p id="loc-note" class="mt-3 hidden max-w-xl rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800" role="status"></p>
+
+          <!-- Live stats (computed from the venues found, never hard-coded) -->
+          <dl class="mt-10 grid max-w-xl grid-cols-3 divide-x divide-line">
+            <div class="pr-4"><dd id="stat-venues" class="font-display text-3xl font-semibold">–</dd><dt class="text-sm text-muted">venues nearby</dt></div>
+            <div class="px-4 sm:px-6"><dd class="font-display text-3xl font-semibold"><span id="stat-rating">–</span> <span class="text-amber-400">★</span></dd><dt class="text-sm text-muted">average rating</dt></div>
+            <div class="pl-4 sm:pl-6"><dd id="stat-sports" class="font-display text-3xl font-semibold">–</dd><dt class="text-sm text-muted">sports covered</dt></div>
+          </dl>
         </div>
-        <button id="btn-locate" type="button" class="rounded-xl border border-bolt/50 px-4 py-2.5 text-sm font-semibold text-bolt hover:bg-bolt/10">
-          Use my current location
-        </button>
-      </div>
-      <p id="location-note" class="mt-2 hidden text-sm text-amber-300" role="status"></p>
 
-      <!-- Location override -->
-      <form id="location-form" role="search" aria-label="Change location" class="mt-4 grid gap-3 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-[1fr_auto_220px]">
-        <label class="sr-only" for="location-input">Search an area or city</label>
-        <input id="location-input" name="q" type="search" autocomplete="off" maxlength="120" placeholder="Search another area or city – e.g. Indiranagar, Bandra, Gurugram"
-               class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white placeholder:text-slate-500">
-        <button type="submit" class="rounded-xl bg-volt px-6 py-3 font-bold text-black hover:brightness-110">Search</button>
-        <label class="sr-only" for="city-select">Choose a city</label>
-        <select id="city-select" class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white">
-          <option value="">Or pick a city…</option>
-        </select>
-      </form>
+        <!-- Hero visual -->
+        <div class="relative mx-auto hidden aspect-square w-full max-w-[520px] lg:block" aria-hidden="true">
+          <span class="ring-line absolute inset-0 rounded-full border border-teal/30"></span>
+          <span class="absolute inset-[12%] rounded-full border border-coral/30"></span>
+          <span class="absolute inset-[24%] rounded-full border border-teal/30"></span>
+          <div class="absolute inset-[30%] flex items-center justify-center rounded-full bg-teal shadow-[0_30px_60px_-20px_rgba(43,191,207,.6)]">
+            <span class="absolute inset-3 rounded-full border border-white/40"></span>
+            <svg id="hero-icon" class="h-20 w-20 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+          </div>
+          <div class="float-card absolute right-0 top-[14%] w-56 rounded-xl border border-line bg-white p-4 shadow-lg">
+            <span class="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-coral"></span>
+            <p class="text-sm text-muted">Popular today</p>
+            <p id="fc-pop-title" class="font-display text-xl font-semibold">Badminton</p>
+            <p id="fc-pop-sub" class="text-sm text-muted">courts nearby</p>
+          </div>
+          <div class="float-card absolute bottom-[12%] left-[2%] w-60 rounded-xl border border-line bg-white p-4 shadow-lg" style="animation-delay:-3s">
+            <p class="text-sm font-semibold text-amber-500">★ <span id="fc-top-rating">4.8</span></p>
+            <p id="fc-top-name" class="mt-1 truncate font-display text-lg font-semibold">Top-rated venue</p>
+            <p id="fc-top-sub" class="truncate text-sm text-muted">near you</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- ================= FILTERS ================= -->
-    <section aria-label="Filter and sort venues" class="mx-auto max-w-7xl px-4">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div id="sport-chips" role="group" aria-label="Filter by sport" class="flex flex-wrap gap-2"></div>
-        <div class="flex items-center gap-2">
-          <label for="sort-select" class="text-sm text-slate-400">Sort by</label>
-          <select id="sort-select" class="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-white">
+    <!-- ================= EXPLORE / FILTERS ================= -->
+    <section id="explore" aria-labelledby="explore-title" class="scroll-mt-16 border-b border-line bg-white">
+      <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div class="shrink-0">
+          <p class="text-xs font-bold uppercase tracking-[.18em] text-teal-dark">Explore nearby</p>
+          <h2 id="explore-title" class="mt-1 font-display text-3xl font-semibold">What are you playing?</h2>
+        </div>
+        <div id="sport-chips" role="group" aria-label="Filter by sport" class="chips-scroll flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible 2xl:justify-end"></div>
+      </div>
+    </section>
+
+    <!-- ================= RESULTS ================= -->
+    <section id="results" aria-labelledby="results-title" class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p id="res-eyebrow" class="text-xs font-bold uppercase tracking-[.18em] text-teal-dark">Near you</p>
+          <h2 id="results-title" class="mt-1 font-display text-4xl font-semibold" aria-live="polite">Finding places to play…</h2>
+          <p id="res-sub" class="mt-2 text-muted"></p>
+        </div>
+        <div class="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-1.5">
+          <label for="sort-select" class="text-sm text-muted">Sort by</label>
+          <select id="sort-select" class="bg-transparent py-1 text-sm font-semibold focus:outline-none">
             <option value="nearest">Nearest distance</option>
             <option value="rating">Highest rated</option>
             <option value="reviews">Most reviewed</option>
           </select>
         </div>
       </div>
-      <p id="result-count" class="mt-4 text-sm text-slate-400" aria-live="polite"></p>
-      <p id="demo-banner" class="mt-3 hidden rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200" role="status">
+
+      <p id="demo-banner" class="mt-5 hidden rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
         Demo mode: the <code>/api/places</code> backend isn't reachable, so these are <strong>sample listings</strong>. Deploy to Vercel with your Google key to see real venues.
       </p>
-    </section>
 
-    <!-- ================= RESULTS ================= -->
-    <section id="results" aria-labelledby="results-title" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-6">
-      <h2 id="results-title" class="sr-only">Sports venues near you</h2>
-      <div id="venue-grid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
-      <div id="empty-state" class="hidden rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-        <p class="font-display text-2xl font-bold text-white">No venues found here yet</p>
-        <p class="mt-1 text-slate-400">Try another sport, a different area, or a nearby city.</p>
-      </div>
-      <p id="error-state" class="hidden rounded-xl border border-red-400/40 bg-red-400/10 p-4 text-red-200" role="alert"></p>
-    </section>
+      <div class="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+        <div>
+          <div id="venue-grid" class="grid gap-6 sm:grid-cols-2"></div>
+          <div id="empty-state" class="hidden rounded-2xl border border-dashed border-line bg-white p-10 text-center">
+            <p class="font-display text-2xl font-semibold">No venues found here yet</p>
+            <p class="mt-1 text-muted">Try another sport, a different area, or a nearby city.</p>
+          </div>
+          <p id="error-state" class="hidden rounded-xl border border-red-200 bg-red-50 p-4 text-red-700" role="alert"></p>
+        </div>
 
-    <!-- ================= SEO CONTENT ================= -->
-    <section id="how" aria-labelledby="how-title" class="mx-auto max-w-7xl scroll-mt-20 px-4 py-12">
-      <h2 id="how-title" class="font-display text-3xl font-bold uppercase text-white">How Cridaa works</h2>
-      <div class="mt-6 grid gap-5 md:grid-cols-3">
-        <article class="rounded-2xl border border-line bg-surface p-6">
-          <h3 class="font-display text-xl font-bold text-volt">1 · Share your area</h3>
-          <p class="mt-2 text-slate-400">Allow location access or type any neighbourhood to see box cricket turfs, football grounds and badminton courts around you.</p>
-        </article>
-        <article class="rounded-2xl border border-line bg-surface p-6">
-          <h3 class="font-display text-xl font-bold text-bolt">2 · Compare venues</h3>
-          <p class="mt-2 text-slate-400">Filter by sport, sort by distance or rating, and check real photos and Google reviews before you decide.</p>
-        </article>
-        <article class="rounded-2xl border border-line bg-surface p-6">
-          <h3 class="font-display text-xl font-bold text-volt">3 · Get in touch</h3>
-          <p class="mt-2 text-slate-400">Tap “Call Now”, tell us a little about yourself and get the venue's number. Transparent pricing is coming soon.</p>
-        </article>
+        <!-- Map view: schematic plot of venue positions relative to you (no map API, no cost) -->
+        <aside aria-label="Map view" class="order-first xl:order-last">
+          <div class="overflow-hidden rounded-2xl border border-line bg-white xl:sticky xl:top-24">
+            <div class="flex items-center justify-between border-b border-line px-5 py-4">
+              <h3 class="flex items-center gap-2 font-semibold"><svg aria-hidden="true" class="h-5 w-5 text-coral" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg> Map view</h3>
+              <button id="map-recenter" type="button" class="flex items-center gap-1.5 text-sm font-semibold text-coral hover:text-coral-dark">
+                <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg> Re-center
+              </button>
+            </div>
+            <div id="map-canvas" class="map-bg relative h-72 sm:h-96 xl:h-[28rem]"></div>
+            <p class="flex items-center justify-between gap-3 px-5 py-3 text-xs text-muted">
+              <span>Schematic view · pins show rating, distance to scale</span>
+              <a id="map-gmaps" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" class="shrink-0 font-semibold text-teal-dark hover:underline">Open Google Maps ↗</a>
+            </p>
+          </div>
+        </aside>
       </div>
     </section>
 
-    <section id="faq" aria-labelledby="faq-title" class="mx-auto max-w-3xl scroll-mt-20 px-4 pb-16">
-      <h2 id="faq-title" class="font-display text-3xl font-bold uppercase text-white">FAQ</h2>
-      <div class="mt-5 divide-y divide-line rounded-2xl border border-line bg-surface">
-        <details class="group p-5"><summary class="cursor-pointer font-semibold text-white">How do I find a box cricket turf near me?</summary>
-          <p class="mt-2 text-slate-400">Allow location access on Cridaa and choose the “Box Cricket” filter. Venues are listed nearest first, with ratings and photos.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer font-semibold text-white">Can I browse turfs in another city?</summary>
-          <p class="mt-2 text-slate-400">Yes. Use the search bar or city dropdown at the top to switch to any neighbourhood or city.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer font-semibold text-white">When will turf prices be listed?</summary>
-          <p class="mt-2 text-slate-400">Pricing and instant booking are on our roadmap – every card carries a “Prices Coming Soon” badge until then.</p></details>
-        <details class="group p-5"><summary class="cursor-pointer font-semibold text-white">Where does venue data come from?</summary>
-          <p class="mt-2 text-slate-400">Names, ratings and photos come from Google Maps Platform. We never store your location beyond your browser session.</p></details>
+    <!-- ================= HOW IT WORKS ================= -->
+    <section id="how" aria-labelledby="how-title" class="scroll-mt-16 bg-white py-16">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <p class="text-xs font-bold uppercase tracking-[.18em] text-teal-dark">How it works</p>
+        <h2 id="how-title" class="mt-1 font-display text-3xl font-semibold">From couch to court in three steps</h2>
+        <div class="mt-8 grid gap-5 md:grid-cols-3">
+          <article class="rounded-2xl border border-line bg-mist p-6"><span class="font-display text-4xl font-semibold text-teal">01</span>
+            <h3 class="mt-3 text-lg font-semibold">Share your area</h3>
+            <p class="mt-2 text-muted">Allow location access or type any neighbourhood to see box cricket turfs, football grounds, badminton and pickleball courts around you.</p></article>
+          <article class="rounded-2xl border border-line bg-mist p-6"><span class="font-display text-4xl font-semibold text-coral">02</span>
+            <h3 class="mt-3 text-lg font-semibold">Compare venues</h3>
+            <p class="mt-2 text-muted">Filter by sport, sort by distance or rating, and check real photos and Google reviews before you decide.</p></article>
+          <article class="rounded-2xl border border-line bg-mist p-6"><span class="font-display text-4xl font-semibold text-teal">03</span>
+            <h3 class="mt-3 text-lg font-semibold">Call and play</h3>
+            <p class="mt-2 text-muted">Tap “Call Now”, tell us a little about yourself and get the venue's number. Transparent pricing is coming soon.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FOR BUSINESSES ================= -->
+    <section id="business" aria-labelledby="biz-title" class="scroll-mt-16 px-4 py-16 sm:px-6">
+      <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-3xl bg-ink px-8 py-12 text-white md:flex-row md:items-center">
+        <div>
+          <h2 id="biz-title" class="font-display text-3xl font-semibold">Run a turf or court?</h2>
+          <p class="mt-2 max-w-xl text-white/70">Get discovered by players in your neighbourhood. Tell us about your venue and we'll get in touch.</p>
+        </div>
+        <!-- Replace with your real address -->
+        <a href="mailto:hello@cridaa.example?subject=List%20my%20venue%20on%20Cridaa" class="rounded-xl bg-coral px-7 py-3.5 font-semibold text-white hover:bg-coral-dark">List your venue</a>
+      </div>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-title" class="mx-auto max-w-3xl scroll-mt-16 px-4 pb-20 sm:px-6">
+      <h2 id="faq-title" class="font-display text-3xl font-semibold">Questions, answered</h2>
+      <div class="mt-5 divide-y divide-line rounded-2xl border border-line bg-white">
+        <details class="p-5"><summary class="cursor-pointer font-semibold">How do I find a box cricket turf near me?</summary>
+          <p class="mt-2 text-muted">Allow location access on Cridaa and choose the “Box Cricket” filter. Venues are listed nearest first, with ratings and photos.</p></details>
+        <details class="p-5"><summary class="cursor-pointer font-semibold">Can I browse turfs in another city?</summary>
+          <p class="mt-2 text-muted">Yes. Use the location button in the top bar to search any neighbourhood or pick a city.</p></details>
+        <details class="p-5"><summary class="cursor-pointer font-semibold">When will turf prices be listed?</summary>
+          <p class="mt-2 text-muted">Pricing and instant booking are on our roadmap – every card carries a “Prices Coming Soon” badge until then.</p></details>
+        <details class="p-5"><summary class="cursor-pointer font-semibold">Where does venue data come from?</summary>
+          <p class="mt-2 text-muted">Names, ratings and photos come from Google Maps Platform. We never store your location beyond your browser session.</p></details>
       </div>
     </section>
   </main>
 
   <!-- ================= FOOTER ================= -->
-  <footer class="border-t border-line bg-surface">
-    <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-      <p>© <span id="year">2025</span> Cridaa. Discover turfs, courts &amp; grounds near you.</p>
+  <footer class="border-t border-line bg-white">
+    <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <p>© <span id="year">2025</span> Cridaa. Find your court. Find your people.</p>
       <p>Venue data &amp; photos © Google. Ratings are from Google reviews.</p>
     </div>
   </footer>
 
   <!-- ================= LEAD MODAL (native <dialog>: focus trap + Esc + aria-modal built in) ================= -->
   <dialog id="lead-dialog" aria-labelledby="lead-title" aria-describedby="lead-sub">
-    <div class="m-auto w-[min(92vw,30rem)] rounded-2xl border border-line bg-surface p-6 shadow-2xl">
+    <div class="m-auto w-[min(92vw,30rem)] rounded-3xl bg-white p-6 text-ink shadow-2xl sm:p-8">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h2 id="lead-title" class="font-display text-2xl font-extrabold uppercase text-white">Get the venue's number</h2>
-          <p id="lead-sub" class="mt-1 text-sm text-slate-400">for <strong id="lead-turf" class="text-volt"></strong></p>
+          <h2 id="lead-title" class="font-display text-2xl font-semibold">Get the venue's number</h2>
+          <p id="lead-sub" class="mt-1 text-sm text-muted">for <strong id="lead-turf" class="text-teal-dark"></strong></p>
         </div>
-        <button type="button" id="lead-close" aria-label="Close" class="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white">
+        <button type="button" id="lead-close" aria-label="Close" class="rounded-lg p-1.5 text-muted hover:bg-mist hover:text-ink">
           <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
 
       <form id="lead-form" class="mt-5 space-y-4" novalidate>
         <div>
-          <label for="lf-name" class="mb-1 block text-sm font-medium text-slate-300">Full name</label>
-          <input id="lf-name" name="fullName" type="text" required minlength="2" maxlength="80" autocomplete="name" class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white">
+          <label for="lf-name" class="mb-1 block text-sm font-medium">Full name</label>
+          <input id="lf-name" name="fullName" type="text" required minlength="2" maxlength="80" autocomplete="name" class="field">
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label for="lf-phone" class="mb-1 block text-sm font-medium text-slate-300">Phone number</label>
-            <input id="lf-phone" name="phone" type="tel" required inputmode="tel" autocomplete="tel" pattern="[0-9+\-\s()]{10,16}" maxlength="16" placeholder="98765 43210" class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white placeholder:text-slate-600">
+            <label for="lf-phone" class="mb-1 block text-sm font-medium">Phone number</label>
+            <input id="lf-phone" name="phone" type="tel" required inputmode="tel" autocomplete="tel" pattern="[0-9+\-\s()]{10,16}" maxlength="16" placeholder="98765 43210" class="field">
           </div>
           <div>
-            <label for="lf-age" class="mb-1 block text-sm font-medium text-slate-300">Age group</label>
-            <select id="lf-age" name="ageGroup" required class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white">
+            <label for="lf-age" class="mb-1 block text-sm font-medium">Age group</label>
+            <select id="lf-age" name="ageGroup" required class="field">
               <option value="">Select…</option>
               <option>Under 18</option><option>18-25</option><option>26-35</option><option>36+</option>
             </select>
           </div>
         </div>
         <div>
-          <label for="lf-email" class="mb-1 block text-sm font-medium text-slate-300">Email address</label>
-          <input id="lf-email" name="email" type="email" required maxlength="120" autocomplete="email" class="w-full rounded-xl border border-line bg-ink px-4 py-3 text-white">
+          <label for="lf-email" class="mb-1 block text-sm font-medium">Email address</label>
+          <input id="lf-email" name="email" type="email" required maxlength="120" autocomplete="email" class="field">
         </div>
 
         <!-- Honeypot: hidden from humans, bots fill it -->
@@ -236,30 +321,30 @@
         <input type="hidden" name="turfName"><input type="hidden" name="turfPlaceId"><input type="hidden" name="turfArea">
         <input type="hidden" name="sport"><input type="hidden" name="userArea">
 
-        <label class="flex items-start gap-3 text-sm text-slate-400">
-          <input id="lf-consent" name="consent" type="checkbox" required class="mt-1 h-4 w-4 accent-[#2dff8a]">
+        <label class="flex items-start gap-3 text-sm text-muted">
+          <input id="lf-consent" name="consent" type="checkbox" required class="mt-1 h-4 w-4 accent-[#2bbfcf]">
           <span>I agree to be contacted by Cridaa about sports venues and offers, and to my details being stored for this purpose.</span>
         </label>
 
-        <p id="lead-error" class="hidden rounded-lg bg-red-400/10 p-3 text-sm text-red-200" role="alert"></p>
-        <button id="lead-submit" type="submit" class="w-full rounded-xl bg-volt px-6 py-3.5 font-bold text-black hover:brightness-110 disabled:opacity-60">Continue</button>
+        <p id="lead-error" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert"></p>
+        <button id="lead-submit" type="submit" class="w-full rounded-xl bg-coral px-6 py-3.5 font-semibold text-white hover:bg-coral-dark disabled:opacity-60">Continue</button>
       </form>
 
       <!-- Success state -->
       <div id="lead-success" class="mt-5 hidden text-center" role="status">
-        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-volt/15 text-volt">
+        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-teal/15 text-teal-dark">
           <svg aria-hidden="true" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
         </div>
-        <p class="font-display text-2xl font-bold text-white">Thanks, <span id="success-name"></span>!</p>
-        <p id="success-msg" class="mt-1 text-slate-400"></p>
-        <a id="success-call" href="#" class="mt-5 hidden items-center justify-center gap-2 rounded-xl bg-volt px-6 py-3.5 font-bold text-black hover:brightness-110"></a>
-        <button type="button" id="success-close" class="mt-3 w-full rounded-xl border border-line px-6 py-3 text-slate-300 hover:bg-white/5">Close</button>
+        <p class="font-display text-2xl font-semibold">Thanks, <span id="success-name"></span>!</p>
+        <p id="success-msg" class="mt-1 text-muted"></p>
+        <a id="success-call" href="#" class="mt-5 hidden items-center justify-center gap-2 rounded-xl bg-coral px-6 py-3.5 font-semibold text-white hover:bg-coral-dark"></a>
+        <button type="button" id="success-close" class="mt-3 w-full rounded-xl border border-line px-6 py-3 text-muted hover:bg-mist">Close</button>
       </div>
     </div>
   </dialog>
 
   <noscript>
-    <p style="padding:1rem;text-align:center;background:#121821;color:#e2e8f0">Cridaa needs JavaScript to find turfs near you. Browse by sport: box cricket, football, badminton and tennis.</p>
+    <p style="padding:1rem;text-align:center;background:#fff;color:#14353d">Cridaa needs JavaScript to find turfs near you. Browse by sport: football, box cricket, badminton, pickleball and tennis.</p>
   </noscript>
 
   <script src="/app.js" defer></script>
