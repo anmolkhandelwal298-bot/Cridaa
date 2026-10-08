@@ -73,7 +73,11 @@
   <!-- ================= HEADER ================= -->
   <header class="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-      <a href="/" class="font-display text-3xl font-bold tracking-tight text-teal-dark" aria-label="Cridaa home">Crid<span class="text-coral">a</span>a</a>
+      <!-- Logo: drop your file in the project root as logo.png. Until then the text wordmark is shown. -->
+      <a href="/" class="flex items-center" aria-label="Cridaa home">
+        <img src="/logo.png" alt="Cridaa" height="40" class="h-10 w-auto" onload="this.nextElementSibling.hidden=true" onerror="this.remove()">
+        <span class="font-display text-3xl font-bold tracking-tight text-teal-dark">Crid<span class="text-coral">a</span>a</span>
+      </a>
 
       <nav aria-label="Primary" class="hidden items-center gap-10 text-[15px] font-medium text-muted md:flex">
         <a href="#explore" class="hover:text-ink">Explore</a>
