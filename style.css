@@ -107,3 +107,18 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .thumb { flex: none; width: 5rem; height: 3.5rem; border-radius: .6rem; overflow: hidden; border: 2px solid transparent; opacity: .75; }
 .thumb[aria-current="true"], .thumb:hover { border-color: var(--coral); opacity: 1; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Card photo carousel (scroll-snap; extra photos load only after the first swipe/click) */
+.media-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.media-track::-webkit-scrollbar { display: none; }
+.media-img { flex: none; width: 100%; scroll-snap-align: center; }
+.slide-btn {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 2.2rem; height: 2.2rem; border-radius: 999px; background: rgba(255,255,255,.95); color: var(--ink);
+  font-size: 1.5rem; line-height: 1; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,.3); opacity: 0; transition: opacity .15s;
+}
+.slide-btn.hidden { display: none; }
+.card-media:hover .slide-btn, .card-media:focus-within .slide-btn, #detail-dialog .slide-btn { opacity: 1; }
+@media (hover: none) { .slide-btn { opacity: 1; } }
+dialog:focus, dialog:focus-visible { outline: none; }

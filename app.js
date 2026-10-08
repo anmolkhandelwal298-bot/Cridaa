@@ -105,6 +105,14 @@
     return data;
   }
 
+  const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  const dayIdx = () => (new Date().getDay() + 6) % 7; // Google lists Monday first
+  const stripDay = (line) => String(line || '').replace(/^[^:]+:\s*/, '');
+  const todayHours = (v) => (v.hours && v.hours[dayIdx()] ? stripDay(v.hours[dayIdx()]) : null);
+  const photoList = (v) => (v.photos && v.photos.length ? v.photos : v.photo ? [{ name: v.photo, author: v.photoAuthor }] : []);
+  /** Demo photo refs start with "demo:" and render as placeholders; real ones go through the secure proxy. */
+  const imgSrc = (ref, w, sid) => (!ref || ref.startsWith('demo:') ? placeholder(sid) : `${API}/places?action=photo&ref=${encodeURIComponent(ref)}&w=${w}`);
+
   /** Inline SVG placeholder, used when Google has no photo (or it fails to load). */
   function placeholder(sportId) {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
@@ -216,8 +224,10 @@
       ['Shuttle Hub Courts', ['badminton'], 3.9, 64, 0.06, 0.04],
       ['City Tennis Club', ['tennis'], 4.2, 97, -0.01, -0.05],
     ];
+    const hours = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => `${d}: 6:00 AM – 11:00 PM`);
     return defs.map(([name, sports, rating, reviews, dLat, dLng]) => ({
-      id: null, name, sports, rating, reviews, photo: null, photoAuthor: '',
+      id: null, name, sports, rating, reviews, photo: null, photoAuthor: '', hours,
+      photos: [{ name: 'demo:1' }, { name: 'demo:2' }, { name: 'demo:3' }],
       address: `${loc.area || loc.city || 'Sample'} (sample address)`, area: loc.area || loc.city || 'Sample area',
       lat: loc.lat + dLat, lng: loc.lng + dLng,
     }));
@@ -261,7 +271,15 @@
 
   function cardHTML(v, idx) {
     const sid = primarySport(v);
-    const photoSrc = v.photo ? `${API}/places?action=photo&ref=${encodeURIComponent(v.photo)}&w=640` : placeholder(sid);
+    const photos = photoList(v);
+    const imgs = (photos.length ? photos : [null]).map((p, i) => {
+      const src = imgSrc(p && p.name, 640, sid);
+      // Every photo download is billed by Google, so photos 2+ stay blank until the user swipes.
+      const lazy = i > 0 && p && !p.name.startsWith('demo:');
+      return `<img ${lazy ? `src="${BLANK}" data-src="${esc(src)}"` : `src="${esc(src)}"`} data-sport="${esc(sid)}" alt="${esc(v.name)} – photo ${i + 1}" width="640" height="400"
+               loading="${idx < 2 && i === 0 ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer" class="media-img h-48 object-cover">`;
+    }).join('');
+    const today = todayHours(v);
     const rating = v.rating != null ? v.rating.toFixed(1) : null;
     const others = v.sports.map((s) => `<span class="tag">${esc(SPORT[s].short)}</span>`).join('');
     const reviews = v.reviews ? `<span class="tag">${v.reviews.toLocaleString('en-IN')} Google reviews</span>` : '';
@@ -269,9 +287,11 @@
     const fav = state.favs.has(favKey(v));
     return `
     <article id="card-${idx}" class="venue-card flex flex-col overflow-hidden rounded-2xl border border-line bg-white" data-idx="${idx}">
-      <div class="relative">
-        <img src="${esc(photoSrc)}" data-sport="${esc(sid)}" alt="${esc(v.name)} – ${esc(tagLabel(v))} venue" width="640" height="400"
-             loading="${idx < 2 ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer" class="h-48 w-full object-cover">
+      <div class="card-media relative">
+        <div class="media-track" data-track>${imgs}</div>
+        ${photos.length > 1 ? `<button type="button" class="slide-btn left-2" data-slide="-1" aria-label="Previous photo">‹</button>
+        <button type="button" class="slide-btn right-2" data-slide="1" aria-label="Next photo">›</button>
+        <span class="absolute bottom-3 left-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs font-semibold text-white" data-count>1/${photos.length}</span>` : ''}
         <span class="absolute left-3 top-3 rounded-md bg-ink/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">${esc(tagLabel(v))}</span>
         <button type="button" data-fav="${idx}" aria-pressed="${fav}" aria-label="Save ${esc(v.name)}" class="heart absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-ink shadow">
           <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.400-9-9.200C1.700 7.600 3.800 4.500 7 4.500c2 0 3.400 1 5 3 1.600-2 3-3 5-3 3.200 0 5.300 3.100 4 6.300C19 15.600 12 20 12 20z"/></svg>
@@ -286,6 +306,10 @@
           <svg aria-hidden="true" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.200 7-11.500A7 7 0 0 0 5 9.500C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></svg>
           <span class="line-clamp-2">${esc(v.area || v.address)}</span>
         </p>
+        <p class="mt-1.5 flex items-start gap-1.5 text-sm ${today && /closed/i.test(today) ? 'text-coral-dark' : 'text-muted'}">
+          <svg aria-hidden="true" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>${today ? `Today · ${esc(today)}` : 'Timings not listed'}</span>
+        </p>
         <div class="my-4 flex items-center justify-between gap-2 border-y border-line py-3">
           <span class="badge-soon"><svg aria-hidden="true" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.500"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Prices Coming Soon</span>
           <a href="${esc(maps)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-sm text-muted hover:text-teal-dark" aria-label="${fmtKm(v.km)} away – directions to ${esc(v.name)} (opens Google Maps)">
@@ -293,7 +317,6 @@
           </a>
         </div>
         <div class="flex flex-wrap gap-2">${others}${reviews}</div>
-        ${v.photo && v.photoAuthor ? `<p class="mt-3 text-[11px] text-muted">Photo: ${esc(v.photoAuthor)} / Google</p>` : ''}
         <button type="button" data-open="${idx}" class="mt-4 text-left text-sm font-semibold text-teal-dark hover:underline">Explore this place →</button>
         <button type="button" data-call="${idx}" class="mt-3 flex items-center justify-center gap-2 rounded-xl bg-coral px-4 py-3 font-semibold text-white hover:bg-coral-dark">
           <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6.600 10.800a15 15 0 0 0 6.600 6.600l2.200-2.200a1 1 0 0 1 1-.25 11.400 11.400 0 0 0 3.600.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.500a1 1 0 0 1 1 1c0 1.250.2 2.450.57 3.570a1 1 0 0 1-.25 1z"/></svg>
@@ -412,16 +435,51 @@
 
 
   // ---------------------------------------------------------------- place detail ("explore more")
-  const photoUrl = (ref, w = 960) => `${API}/places?action=photo&ref=${encodeURIComponent(ref)}&w=${w}`;
+  const photoUrl = (ref, w = 960) => imgSrc(ref, w, dView.sid);
+  const dView = { photos: [], i: 0, sid: 'all' };
   let detailSeq = 0;
+
+  function showDetailPhoto(i) {
+    const n = dView.photos.length;
+    if (!n) return;
+    dView.i = (i + n) % n;
+    const img = $('d-photo');
+    delete img.dataset.fallback;
+    img.src = photoUrl(dView.photos[dView.i].name);
+    $('d-count').textContent = `${dView.i + 1} / ${n}`;
+    const who = dView.photos[dView.i].author;
+    $('d-credit').textContent = who ? `Photo: ${who} / Google` : '';
+    $('d-thumbs').querySelectorAll('.thumb').forEach((t, k) => (k === dView.i ? t.setAttribute('aria-current', 'true') : t.removeAttribute('aria-current')));
+  }
+
+  function setDetailPhotos(list) {
+    dView.photos = list;
+    const multi = list.length > 1;
+    ['d-prev', 'd-next', 'd-count'].forEach((id) => $(id).classList.toggle('hidden', !multi));
+    $('d-thumbs').innerHTML = multi ? list.map((p, i) =>
+      `<button type="button" class="thumb" data-thumb="${i}" aria-label="Show photo ${i + 1}"><img src="${esc(imgSrc(p.name, 200, dView.sid))}" alt="" loading="lazy"></button>`).join('') : '';
+    if (list.length) showDetailPhoto(0);
+  }
+
+  function setDetailHours(hours, openNow) {
+    const wrap = $('d-hours-wrap');
+    wrap.classList.toggle('hidden', !hours.length && openNow == null);
+    const today = hours[dayIdx()];
+    $('d-today').textContent = today ? `Today: ${stripDay(today)}` : '';
+    $('d-open').textContent = openNow == null ? '' : openNow ? 'Open now' : 'Closed now';
+    $('d-open').className = `mt-1 text-sm font-semibold ${openNow ? 'text-emerald-600' : 'text-coral-dark'}`;
+    $('d-hours').innerHTML = hours.map((h, i) => `<li class="${i === dayIdx() ? 'font-semibold text-ink' : ''}">${esc(h)}</li>`).join('');
+  }
 
   function openDetail(v) {
     state.active = v;
     const seq = ++detailSeq, sid = primarySport(v);
-    const first = v.photo ? photoUrl(v.photo) : placeholder(sid);
+    dView.sid = sid;
     const img = $('d-photo');
-    delete img.dataset.fallback;
-    img.dataset.sport = sid; img.src = first; img.alt = `${v.name} – ${tagLabel(v)} venue`;
+    img.dataset.sport = sid; img.alt = `${v.name} – ${tagLabel(v)} venue`;
+    const photos = photoList(v);
+    setDetailPhotos(photos);
+    if (!photos.length) { img.src = placeholder(sid); delete img.dataset.fallback; }
     $('d-tag').textContent = tagLabel(v);
     $('d-title').textContent = v.name;
     $('d-rating').innerHTML = v.rating != null
@@ -432,31 +490,28 @@
     $('d-directions').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name + ' ' + v.address)}${v.id ? `&query_place_id=${encodeURIComponent(v.id)}` : ''}`;
     $('d-summary').classList.add('hidden');
     $('d-reviews').innerHTML = '';
-    $('d-hours-wrap').classList.add('hidden');
     $('d-website').classList.add('hidden');
-    $('d-thumbs').innerHTML = '';
-    $('d-status').textContent = v.id ? 'Loading details…' : 'Photos, hours and reviews appear here once the Google backend is connected.';
-    el.detail.showModal();
+    setDetailHours(v.hours || [], null);
+    $('d-status').textContent = v.id ? 'Loading details…' : 'Reviews appear here once the Google backend is connected.';
+    try { el.detail.showModal(); } catch { el.detail.setAttribute('open', ''); } // very old browsers lack <dialog>
     el.detail.scrollTop = 0;
     if (!v.id) return;
 
     api(`/places?action=details&id=${encodeURIComponent(v.id)}`).then((d) => {
-      if (seq !== detailSeq) return;
-      renderDetail(d, v);
+      if (seq === detailSeq) renderDetail(d);
     }).catch(() => { if (seq === detailSeq) $('d-status').textContent = 'Couldn’t load more details right now.'; });
   }
 
-  function renderDetail(d, v) {
+  function renderDetail(d) {
     if (d.summary) { $('d-summary').textContent = d.summary; $('d-summary').classList.remove('hidden'); }
-    if (d.photos.length > 1) {
-      $('d-thumbs').innerHTML = d.photos.map((p, i) => `<button type="button" class="thumb" data-photo="${esc(p.name)}" aria-label="Show photo ${i + 1}" ${i === 0 ? 'aria-current="true"' : ''}><img src="${esc(photoUrl(p.name, 200))}" alt="" loading="lazy"></button>`).join('');
+    // The details call can return more photos than the search did; keep the user's current photo if it is still there.
+    if (d.photos.length > dView.photos.length) {
+      const cur = dView.photos[dView.i] && dView.photos[dView.i].name;
+      setDetailPhotos(d.photos);
+      const keep = d.photos.findIndex((p) => p.name === cur);
+      if (keep > 0) showDetailPhoto(keep);
     }
-    if (d.hours.length || d.openNow != null) {
-      $('d-hours-wrap').classList.remove('hidden');
-      $('d-open').textContent = d.openNow == null ? '' : d.openNow ? 'Open now' : 'Closed now';
-      $('d-open').className = `mt-1 text-sm font-semibold ${d.openNow ? 'text-emerald-600' : 'text-coral-dark'}`;
-      $('d-hours').innerHTML = d.hours.map((h) => `<li>${esc(h)}</li>`).join('');
-    }
+    if (d.hours.length || d.openNow != null) setDetailHours(d.hours.length ? d.hours : state.active.hours || [], d.openNow);
     if (d.website) { const w = $('d-website'); w.href = d.website; w.classList.remove('hidden'); }
     if (d.mapsUri) $('d-directions').href = d.mapsUri;
     $('d-status').textContent = d.reviews.length ? '' : 'No written reviews yet.';
@@ -573,7 +628,17 @@
   el.sort.addEventListener('change', () => { state.sort = el.sort.value; if (state.loc) render(); });
   el.sub.addEventListener('click', (e) => { if (e.target.id === 'clear-query') { state.query = ''; render(); } });
 
+  function loadMedia(track) {
+    track.querySelectorAll('img[data-src]').forEach((i) => { i.src = i.dataset.src; i.removeAttribute('data-src'); });
+  }
   el.grid.addEventListener('click', (e) => {
+    const slide = e.target.closest('[data-slide]');
+    if (slide) {
+      const track = slide.closest('.card-media').querySelector('[data-track]');
+      loadMedia(track);
+      track.scrollBy({ left: +slide.dataset.slide * track.clientWidth, behavior: 'smooth' });
+      return;
+    }
     const call = e.target.closest('[data-call]');
     if (call) return openLead(shown[+call.dataset.call]);
     const open = e.target.closest('[data-open]');
@@ -593,6 +658,13 @@
   el.mapCanvas.addEventListener('click', (e) => { const p = e.target.closest('[data-pin]'); if (p) pick(+p.dataset.pin); });
   $('map-recenter').addEventListener('click', () => pick(null));
 
+  // Scroll doesn't bubble either: update the "2/5" counter and load the other photos on first swipe.
+  el.grid.addEventListener('scroll', (e) => {
+    const t = e.target; if (!t.matches || !t.matches('[data-track]')) return;
+    loadMedia(t);
+    const n = Math.round(t.scrollLeft / t.clientWidth) + 1;
+    const c = t.parentElement.querySelector('[data-count]'); if (c) c.textContent = `${n}/${t.children.length}`;
+  }, true);
   // <img> error events don't bubble, so listen in the capture phase.
   el.grid.addEventListener('error', (e) => {
     const img = e.target;
@@ -604,11 +676,12 @@
   $('d-close').addEventListener('click', closeDetail);
   el.detail.addEventListener('click', (e) => { if (e.target === el.detail) closeDetail(); });
   $('d-call').addEventListener('click', () => { const v = state.active; closeDetail(); openLead(v); });
-  $('d-thumbs').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-photo]'); if (!b) return;
-    $('d-photo').src = photoUrl(b.dataset.photo);
-    $('d-thumbs').querySelectorAll('.thumb').forEach((t) => t.removeAttribute('aria-current'));
-    b.setAttribute('aria-current', 'true');
+  $('d-thumbs').addEventListener('click', (e) => { const b = e.target.closest('[data-thumb]'); if (b) showDetailPhoto(+b.dataset.thumb); });
+  $('d-prev').addEventListener('click', () => showDetailPhoto(dView.i - 1));
+  $('d-next').addEventListener('click', () => showDetailPhoto(dView.i + 1));
+  el.detail.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') showDetailPhoto(dView.i - 1);
+    else if (e.key === 'ArrowRight') showDetailPhoto(dView.i + 1);
   });
   $('d-photo').addEventListener('error', (e) => { const i = e.target; if (!i.dataset.fallback) { i.dataset.fallback = '1'; i.src = placeholder(i.dataset.sport); } });
   $('success-close').addEventListener('click', closeLead);

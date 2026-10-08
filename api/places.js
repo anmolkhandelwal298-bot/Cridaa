@@ -95,7 +95,7 @@ async function geocode(q, res) {
 const SEARCH_MASK = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.shortFormattedAddress',
   'places.location', 'places.rating', 'places.userRatingCount', 'places.photos',
-  'places.types', 'places.primaryType',
+  'places.types', 'places.primaryType', 'places.regularOpeningHours.weekdayDescriptions',
 ].join(',');
 
 async function search(q, res) {
@@ -151,6 +151,9 @@ async function search(q, res) {
         photo: photo?.name || null,
         // Google requires author attribution to be shown next to its photos.
         photoAuthor: photo?.authorAttributions?.[0]?.displayName || '',
+        // Up to 5 photo references for the card carousel (only the first is downloaded until the user swipes).
+        photos: (p.photos || []).slice(0, 5).map((x) => ({ name: x.name, author: x.authorAttributions?.[0]?.displayName || '' })),
+        hours: p.regularOpeningHours?.weekdayDescriptions || [], // Monday-first, e.g. "Monday: 6:00 AM – 11:00 PM"
         sports: [sport],
       });
     }
@@ -178,7 +181,7 @@ async function details(q, res) {
     summary: d.editorialSummary?.text || '',
     openNow: d.currentOpeningHours?.openNow ?? null,
     hours: d.regularOpeningHours?.weekdayDescriptions || [],
-    photos: (d.photos || []).slice(0, 6).map((p) => ({ name: p.name, author: p.authorAttributions?.[0]?.displayName || '' })),
+    photos: (d.photos || []).slice(0, 8).map((p) => ({ name: p.name, author: p.authorAttributions?.[0]?.displayName || '' })),
     reviews: (d.reviews || []).slice(0, 5).map((v) => ({
       author: v.authorAttribution?.displayName || 'Google user',
       rating: v.rating || 0,
