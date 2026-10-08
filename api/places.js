@@ -7,6 +7,7 @@
  *   GET /api/places?action=reverse&lat=..&lng=..          → { area, city, formatted }
  *   GET /api/places?action=geocode&q=Indiranagar          → { lat, lng, area, city, formatted }
  *   GET /api/places?action=search&lat=..&lng=..&radius=8000&sports=football,tennis
+ *   GET /api/places?action=details&id=PLACE_ID            → rich detail for the "explore" modal (loaded on click only)
  *   GET /api/places?action=photo&ref=places/ID/photos/REF&w=640   → image bytes
  *   GET /api/places?action=phone&id=PLACE_ID              → { phone, tel }  (called only AFTER a lead is captured)
  *
@@ -14,6 +15,7 @@
  * CDN caching (s-maxage), per-IP rate limit, optional origin allow-list.
  */
 const { rateLimit, originAllowed, send, num, haversineKm } = require('./_util');
+const { filterPlaces } = require('./_filter');
 
 const SPORT_QUERIES = {
   'box-cricket': 'box cricket turf',
@@ -38,6 +40,7 @@ module.exports = async function handler(req, res) {
       case 'reverse': return await reverse(q, res);
       case 'geocode': return await geocode(q, res);
       case 'search': return await search(q, res);
+      case 'details': return await details(q, res);
       case 'photo': return await photo(q, res);
       case 'phone': return await phone(q, res);
       default: return send(res, 400, { error: 'unknown_action' });
@@ -87,10 +90,12 @@ async function geocode(q, res) {
 }
 
 // ---------- Places (New) ----------
-// Pro-tier fields only (no phone/website here — those are costlier SKUs).
+// Only the fields we render (+ types for the venue filter). Rating fields put this request in Google's
+// higher "Enterprise" billing tier — check current pricing/free caps on the Maps Platform pricing page.
 const SEARCH_MASK = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.shortFormattedAddress',
   'places.location', 'places.rating', 'places.userRatingCount', 'places.photos',
+  'places.types', 'places.primaryType',
 ].join(',');
 
 async function search(q, res) {
@@ -117,10 +122,18 @@ async function search(q, res) {
     return { sport, places: (await r.json()).places || [] };
   }));
 
+  // Drop shops / stadiums / non-venues (see _filter.js). Evaluate each unique place once.
+  const unique = new Map();
+  results.forEach(({ places }) => places.forEach((p) => unique.set(p.id, p)));
+  const { kept, stats } = await filterPlaces([...unique.values()], KEY());
+  const keepIds = new Set(kept.map((p) => p.id));
+  console.log('[search] filter', JSON.stringify(stats));
+
   // Merge the per-sport result sets, de-duplicating by place id.
   const byId = new Map();
   for (const { sport, places } of results) {
     for (const p of places) {
+      if (!keepIds.has(p.id)) continue;
       if (!p.location) continue;
       if (haversineKm(lat, lng, p.location.latitude, p.location.longitude) > (radius / 1000) * 1.5) continue;
       const existing = byId.get(p.id);
@@ -143,6 +156,36 @@ async function search(q, res) {
     }
   }
   return send(res, 200, { venues: [...byId.values()] }, 'public, s-maxage=3600, stale-while-revalidate=86400');
+}
+
+async function details(q, res) {
+  const id = String(q.id || '');
+  if (!/^[\w-]{10,200}$/.test(id)) return send(res, 400, { error: 'bad_id' });
+  const mask = ['id', 'displayName', 'formattedAddress', 'googleMapsUri', 'websiteUri', 'rating', 'userRatingCount', 'photos',
+    'regularOpeningHours.weekdayDescriptions', 'currentOpeningHours.openNow', 'editorialSummary', 'reviews'].join(',');
+  const r = await fetch(`https://places.googleapis.com/v1/places/${id}`, { headers: { 'X-Goog-Api-Key': KEY(), 'X-Goog-FieldMask': mask } });
+  if (!r.ok) return send(res, 404, { error: 'not_found' });
+  const d = await r.json();
+  const httpUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u) ? u : '');
+  return send(res, 200, {
+    id: d.id,
+    name: d.displayName?.text || '',
+    address: d.formattedAddress || '',
+    mapsUri: httpUrl(d.googleMapsUri),
+    website: httpUrl(d.websiteUri),
+    rating: d.rating ?? null,
+    reviewCount: d.userRatingCount ?? 0,
+    summary: d.editorialSummary?.text || '',
+    openNow: d.currentOpeningHours?.openNow ?? null,
+    hours: d.regularOpeningHours?.weekdayDescriptions || [],
+    photos: (d.photos || []).slice(0, 6).map((p) => ({ name: p.name, author: p.authorAttributions?.[0]?.displayName || '' })),
+    reviews: (d.reviews || []).slice(0, 5).map((v) => ({
+      author: v.authorAttribution?.displayName || 'Google user',
+      rating: v.rating || 0,
+      when: v.relativePublishTimeDescription || '',
+      text: (v.text?.text || v.originalText?.text || '').slice(0, 500),
+    })),
+  }, 'public, s-maxage=21600, stale-while-revalidate=86400');
 }
 
 async function photo(q, res) {

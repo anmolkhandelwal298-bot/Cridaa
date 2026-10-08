@@ -29,6 +29,8 @@ cridaa/
    | `WEB3FORMS_ACCESS_KEY` | Option B below |
    | `ALLOWED_ORIGINS` *(optional)* | `https://yourdomain.com` |
    | `DEFAULT_REGION` *(optional)* | `IN` |
+   | `ANTHROPIC_API_KEY` *(optional)* | enables the AI venue judge (see below) |
+   | `VENUE_FILTER` *(optional)* | `off` disables all filtering |
 
 5. Replace `cridaa.example` in `index.html`, `robots.txt`, `sitemap.xml` with your domain; add a 1200×630 `og-image.jpg`.
 6. **Cap spend**: Cloud Console → *APIs & Services → Quotas* → set a daily request limit per API (e.g. 500/day) and add a *Billing → Budget alert*.
@@ -74,10 +76,18 @@ const out = (o) => ContentService.createTextOutput(JSON.stringify(o)).setMimeTyp
 Get a free access key at [web3forms.com](https://web3forms.com) and set `WEB3FORMS_ACCESS_KEY` in Vercel. The key stays on the server because the browser only talks to `/api/capture-lead`.
 
 ## Cost design
-- Only Pro-tier Text Search fields are requested. The phone number (a costlier SKU) is fetched **only after** a lead is submitted.
+- Only the fields the UI renders are requested (Google bills by the highest-tier field in a request, and ratings sit in a higher tier, so check current Maps Platform pricing and free monthly caps). The phone number and the rich detail view (reviews, hours, website) are fetched **only on demand**: after a lead is submitted, or when a card is opened.
 - Coordinates are rounded to ~1 km before calling `/api`, and responses carry `s-maxage` headers, so Vercel's CDN serves repeat searches without hitting Google.
 - The city dropdown uses built-in coordinates (no geocoding call). Photos load lazily and are cached for 24 h.
 - Per-IP rate limiting (best effort, in-memory), param clamping and photo-reference validation limit abuse of the proxy.
+
+## Keeping out shops and stadiums (`api/_filter.js`)
+Text search returns anything vaguely matching "football" or "badminton", including sports shops and big stadiums. Every result passes two gates:
+1. **Free rules**: Google place types (`sports_complex`, `sports_club` and similar are accepted; `sporting_goods_store`, `stadium`, schools, hotels and similar are rejected) plus name patterns ("Store", "Traders" rejected; "Turf", "Box Cricket", "Court" accepted). This settles most results.
+2. **AI judge (optional)**: places the rules can't decide (for example typed only as `point_of_interest`) are sent in one batched call to a small Claude model with their name, types, Google's summary and reviews. Set `ANTHROPIC_API_KEY` to enable it (default model `claude-haiku-5-5`, override with `FILTER_MODEL`). At most 10 places are judged per search, and the CDN caches results for an hour.
+   Google's API returns **at most 5 reviews per place**, so the judge reads 5, not 10-15. Without the key, undecided places are dropped rather than shown.
+
+Tune the lists at the top of `_filter.js`. Vercel's function logs show counts per search (`[search] filter {...}`).
 
 ## Notes
 - **Google terms**: Places content may not be stored long-term. Cache TTLs are kept short, photo authors are shown, and the footer carries the "© Google" notice. Check the current Maps Platform terms before launch.

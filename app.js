@@ -73,7 +73,7 @@
     eyebrow: $('res-eyebrow'), title: $('results-title'), sub: $('res-sub'),
     grid: $('venue-grid'), empty: $('empty-state'), error: $('error-state'), demo: $('demo-banner'),
     mapCanvas: $('map-canvas'), mapGmaps: $('map-gmaps'),
-    dlg: $('lead-dialog'), lform: $('lead-form'), lerr: $('lead-error'), lsubmit: $('lead-submit'), lturf: $('lead-turf'), success: $('lead-success'),
+    detail: $('detail-dialog'), dlg: $('lead-dialog'), lform: $('lead-form'), lerr: $('lead-error'), lsubmit: $('lead-submit'), lturf: $('lead-turf'), success: $('lead-success'),
   };
 
   // ---------------------------------------------------------------- utils
@@ -279,7 +279,7 @@
       </div>
       <div class="flex flex-1 flex-col p-5">
         <div class="flex items-start justify-between gap-3">
-          <h3 class="font-display text-xl font-semibold leading-tight">${esc(v.name)}</h3>
+          <h3 class="font-display text-xl font-semibold leading-tight"><button type="button" data-open="${idx}" class="card-open" aria-label="Explore ${esc(v.name)}">${esc(v.name)}</button></h3>
           ${rating ? `<span class="flex shrink-0 items-center gap-1 font-semibold text-amber-500"><span aria-hidden="true">★</span>${rating}<span class="sr-only"> out of 5 stars</span></span>` : ''}
         </div>
         <p class="mt-2 flex items-start gap-1.5 text-sm text-muted">
@@ -294,7 +294,8 @@
         </div>
         <div class="flex flex-wrap gap-2">${others}${reviews}</div>
         ${v.photo && v.photoAuthor ? `<p class="mt-3 text-[11px] text-muted">Photo: ${esc(v.photoAuthor)} / Google</p>` : ''}
-        <button type="button" data-call="${idx}" class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-coral px-4 py-3 font-semibold text-white hover:bg-coral-dark">
+        <button type="button" data-open="${idx}" class="mt-4 text-left text-sm font-semibold text-teal-dark hover:underline">Explore this place →</button>
+        <button type="button" data-call="${idx}" class="mt-3 flex items-center justify-center gap-2 rounded-xl bg-coral px-4 py-3 font-semibold text-white hover:bg-coral-dark">
           <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6.600 10.800a15 15 0 0 0 6.600 6.600l2.200-2.200a1 1 0 0 1 1-.25 11.400 11.400 0 0 0 3.600.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.500a1 1 0 0 1 1 1c0 1.250.2 2.450.57 3.570a1 1 0 0 1-.25 1z"/></svg>
           Call Now
         </button>
@@ -409,6 +410,67 @@
     if (state.loc) render();
   }
 
+
+  // ---------------------------------------------------------------- place detail ("explore more")
+  const photoUrl = (ref, w = 960) => `${API}/places?action=photo&ref=${encodeURIComponent(ref)}&w=${w}`;
+  let detailSeq = 0;
+
+  function openDetail(v) {
+    state.active = v;
+    const seq = ++detailSeq, sid = primarySport(v);
+    const first = v.photo ? photoUrl(v.photo) : placeholder(sid);
+    const img = $('d-photo');
+    delete img.dataset.fallback;
+    img.dataset.sport = sid; img.src = first; img.alt = `${v.name} – ${tagLabel(v)} venue`;
+    $('d-tag').textContent = tagLabel(v);
+    $('d-title').textContent = v.name;
+    $('d-rating').innerHTML = v.rating != null
+      ? `<span class="font-semibold text-amber-500">★ ${v.rating.toFixed(1)}</span><span class="text-muted">· ${v.reviews.toLocaleString('en-IN')} Google reviews</span>` : '<span class="text-muted">No ratings yet</span>';
+    $('d-sports').innerHTML = v.sports.map((s) => `<span class="tag">${esc(SPORT[s].short)}</span>`).join('');
+    $('d-address').textContent = v.address || v.area;
+    $('d-distance').textContent = `${fmtKm(v.km)} from ${state.loc.area || state.loc.city || 'you'}`;
+    $('d-directions').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name + ' ' + v.address)}${v.id ? `&query_place_id=${encodeURIComponent(v.id)}` : ''}`;
+    $('d-summary').classList.add('hidden');
+    $('d-reviews').innerHTML = '';
+    $('d-hours-wrap').classList.add('hidden');
+    $('d-website').classList.add('hidden');
+    $('d-thumbs').innerHTML = '';
+    $('d-status').textContent = v.id ? 'Loading details…' : 'Photos, hours and reviews appear here once the Google backend is connected.';
+    el.detail.showModal();
+    el.detail.scrollTop = 0;
+    if (!v.id) return;
+
+    api(`/places?action=details&id=${encodeURIComponent(v.id)}`).then((d) => {
+      if (seq !== detailSeq) return;
+      renderDetail(d, v);
+    }).catch(() => { if (seq === detailSeq) $('d-status').textContent = 'Couldn’t load more details right now.'; });
+  }
+
+  function renderDetail(d, v) {
+    if (d.summary) { $('d-summary').textContent = d.summary; $('d-summary').classList.remove('hidden'); }
+    if (d.photos.length > 1) {
+      $('d-thumbs').innerHTML = d.photos.map((p, i) => `<button type="button" class="thumb" data-photo="${esc(p.name)}" aria-label="Show photo ${i + 1}" ${i === 0 ? 'aria-current="true"' : ''}><img src="${esc(photoUrl(p.name, 200))}" alt="" loading="lazy"></button>`).join('');
+    }
+    if (d.hours.length || d.openNow != null) {
+      $('d-hours-wrap').classList.remove('hidden');
+      $('d-open').textContent = d.openNow == null ? '' : d.openNow ? 'Open now' : 'Closed now';
+      $('d-open').className = `mt-1 text-sm font-semibold ${d.openNow ? 'text-emerald-600' : 'text-coral-dark'}`;
+      $('d-hours').innerHTML = d.hours.map((h) => `<li>${esc(h)}</li>`).join('');
+    }
+    if (d.website) { const w = $('d-website'); w.href = d.website; w.classList.remove('hidden'); }
+    if (d.mapsUri) $('d-directions').href = d.mapsUri;
+    $('d-status').textContent = d.reviews.length ? '' : 'No written reviews yet.';
+    $('d-reviews').innerHTML = d.reviews.map((r) => `
+      <li class="rounded-xl border border-line p-4">
+        <div class="flex items-center justify-between gap-2"><span class="font-semibold">${esc(r.author)}</span>
+          <span class="text-sm text-amber-500" aria-label="${r.rating} out of 5">${'★'.repeat(Math.round(r.rating))}</span></div>
+        <p class="mt-0.5 text-xs text-muted">${esc(r.when)}</p>
+        ${r.text ? `<p class="mt-2 text-sm leading-relaxed">${esc(r.text)}</p>` : ''}
+      </li>`).join('');
+  }
+
+  const closeDetail = () => { if (el.detail.open) el.detail.close(); };
+
   // ---------------------------------------------------------------- lead modal
   function openLead(venue) {
     state.active = venue;
@@ -514,13 +576,19 @@
   el.grid.addEventListener('click', (e) => {
     const call = e.target.closest('[data-call]');
     if (call) return openLead(shown[+call.dataset.call]);
+    const open = e.target.closest('[data-open]');
+    if (open) return openDetail(shown[+open.dataset.open], open);
     const fav = e.target.closest('[data-fav]');
     if (fav) {
       const key = favKey(shown[+fav.dataset.fav]);
       state.favs.has(key) ? state.favs.delete(key) : state.favs.add(key);
       fav.setAttribute('aria-pressed', String(state.favs.has(key)));
       store.set('cridaa.favs', [...state.favs]);
+      return;
     }
+    // Clicking anywhere else on the card (photo, blank space) also opens it; links keep their own behaviour.
+    const card = e.target.closest('.venue-card');
+    if (card && !e.target.closest('a, button')) openDetail(shown[+card.dataset.idx]);
   });
   el.mapCanvas.addEventListener('click', (e) => { const p = e.target.closest('[data-pin]'); if (p) pick(+p.dataset.pin); });
   $('map-recenter').addEventListener('click', () => pick(null));
@@ -533,6 +601,16 @@
 
   el.lform.addEventListener('submit', submitLead);
   $('lead-close').addEventListener('click', closeLead);
+  $('d-close').addEventListener('click', closeDetail);
+  el.detail.addEventListener('click', (e) => { if (e.target === el.detail) closeDetail(); });
+  $('d-call').addEventListener('click', () => { const v = state.active; closeDetail(); openLead(v); });
+  $('d-thumbs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-photo]'); if (!b) return;
+    $('d-photo').src = photoUrl(b.dataset.photo);
+    $('d-thumbs').querySelectorAll('.thumb').forEach((t) => t.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'true');
+  });
+  $('d-photo').addEventListener('error', (e) => { const i = e.target; if (!i.dataset.fallback) { i.dataset.fallback = '1'; i.src = placeholder(i.dataset.sport); } });
   $('success-close').addEventListener('click', closeLead);
   el.dlg.addEventListener('click', (e) => { if (e.target === el.dlg) closeLead(); }); // backdrop click
 
