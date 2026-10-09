@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /admin
 
-Sitemap: https://www.cridaa.example/sitemap.xml
+Sitemap: https://cridaa.com/sitemap.xml

@@ -35,7 +35,7 @@ cridaa/
    | `ANTHROPIC_API_KEY` *(optional)* | enables the AI venue judge (see below) |
    | `VENUE_FILTER` *(optional)* | `off` disables all filtering |
 
-5. Replace `cridaa.example` in `index.html`, `robots.txt`, `sitemap.xml` with your domain; add a 1200×630 `og-image.jpg`.
+5. Domain: run `SITE_URL=https://cridaa.com node scripts/build-seo.js` (already done for cridaa.com); add a 1200×630 `og-image.jpg`.
 6. **Cap spend**: Cloud Console → *APIs & Services → Quotas* → set a daily request limit per API (e.g. 500/day) and add a *Billing → Budget alert*.
 
 Local dev: `npm i -g vercel && vercel dev` (put the variables in an untracked `.env.local`). Serving the folder with any plain static server works in **demo mode**, with clearly labelled sample listings.

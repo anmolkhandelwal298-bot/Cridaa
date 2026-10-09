@@ -21,7 +21,7 @@ const list = (arr) => (arr.length > 1 ? `${arr.slice(0, -1).join(', ')} and ${ar
 
 let home = read('index.html');
 const currentSite = (home.match(/<link rel="canonical" href="(https?:\/\/[^"]+?)\/?">/) || [])[1];
-const SITE = (process.env.SITE_URL || currentSite || 'https://www.cridaa.example').replace(/\/+$/, '');
+const SITE = (process.env.SITE_URL || currentSite || 'https://cridaa.com').replace(/\/+$/, '');
 if (currentSite && currentSite !== SITE) home = home.split(currentSite).join(SITE);
 
 const between = (s, a, b) => { const i = s.indexOf(a), j = s.indexOf(b); if (i < 0 || j < 0) throw new Error(`marker ${a} / ${b} missing in index.html`); return [i, j + b.length]; };
