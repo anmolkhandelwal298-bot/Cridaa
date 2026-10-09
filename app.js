@@ -51,6 +51,9 @@
     { name: 'Gurugram', lat: 28.4595, lng: 77.0266 },
   ];
 
+  // Set by the generated SEO landing pages (scripts/build-seo.js): { sport, city: {name, lat, lng} | null }
+  const PAGE = window.CRIDAA_PAGE || null;
+
   // ---------------------------------------------------------------- state
   const state = {
     loc: null,          // { lat, lng, area, city, source: 'gps'|'search'|'city' }
@@ -162,7 +165,7 @@
     state.query = '';
     const text = locText(loc);
     el.locLabel.textContent = loc.area || loc.city || 'Your location';
-    document.title = `Sports Venues in ${text} – Turfs, Courts & Grounds | Cridaa`;
+    if (!PAGE) document.title = `Sports Venues in ${text} – Turfs, Courts & Grounds | Cridaa`; // landing pages keep their own SEO title
     el.mapGmaps.href = `https://www.google.com/maps/@${loc.lat},${loc.lng},14z`;
     if (persist) store.set('cridaa.loc', loc);
     loadVenues();
@@ -459,10 +462,12 @@
       `<button type="button" class="chip" data-sport="${s.id}" aria-pressed="${s.id === state.sport}">${ico(s.id)}${esc(s.label)}</button>`).join('');
   }
 
+  const render_if_ready = () => { if (state.loc) render(); };
   function setSport(id) {
     state.sport = id;
     track('sport_filter', { sport: id });
     el.chips.querySelectorAll('[data-sport]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.sport === id)));
+    if (PAGE) return render_if_ready();
     const url = new URL(location.href);
     id === 'all' ? url.searchParams.delete('sport') : url.searchParams.set('sport', id);
     history.replaceState(null, '', url);
@@ -736,16 +741,31 @@
   $('success-close').addEventListener('click', closeLead);
   el.dlg.addEventListener('click', (e) => { if (e.target === el.dlg) closeLead(); }); // backdrop click
 
+  // ---------------------------------------------------------------- hero text rotator ("Badminton court near me" → "Box cricket turf near me" …)
+  function startRotator() {
+    const node = $('rotator');
+    if (!node || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // static first phrase for reduced motion
+    let phrases; try { phrases = JSON.parse(node.dataset.phrases); } catch { return; }
+    let i = 0;
+    setInterval(() => {
+      if (document.hidden) return;
+      node.classList.add('rot-out');
+      setTimeout(() => { i = (i + 1) % phrases.length; node.textContent = phrases[i]; node.classList.remove('rot-out'); }, 350);
+    }, 2600);
+  }
+
   // ---------------------------------------------------------------- init
   function init() {
     $('year').textContent = new Date().getFullYear();
     el.cityList.innerHTML = CITIES.map((c) => `<li><button type="button" data-city="${esc(c.name)}" class="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-mist">${esc(c.name)}</button></li>`).join('');
     const saved = store.get('cridaa.favs'); if (Array.isArray(saved)) saved.forEach((k) => state.favs.add(k));
-    const wanted = new URLSearchParams(location.search).get('sport');
+    const wanted = PAGE ? PAGE.sport : new URLSearchParams(location.search).get('sport');
     if (SPORT[wanted]) state.sport = wanted;
     renderChips();
+    startRotator();
     showSkeleton();
-    detectLocation();
+    if (PAGE && PAGE.city) setLocation({ lat: PAGE.city.lat, lng: PAGE.city.lng, area: '', city: PAGE.city.name, source: 'city' }, { persist: false });
+    else detectLocation();
   }
   init();
 })();

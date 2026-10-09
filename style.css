@@ -122,3 +122,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .card-media:hover .slide-btn, .card-media:focus-within .slide-btn, #detail-dialog .slide-btn { opacity: 1; }
 @media (hover: none) { .slide-btn { opacity: 1; } }
 dialog:focus, dialog:focus-visible { outline: none; }
+
+/* Hero rotating phrase */
+.rot-word { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
+.rot-word.rot-out { opacity: 0; transform: translateY(.3em); }
+a.popular { display: inline-block; margin: .15rem .25rem .15rem 0; padding: .2rem .7rem; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--teal-dark); font-weight: 500; }
+a.popular:hover { border-color: var(--teal); }
