@@ -1,4 +1,4 @@
-# Cridaa — hyper-local sports turf & court directory
+# Cridaa — directory of sports venues near you
 
 Static site (HTML + Tailwind CDN + vanilla JS) with two Vercel serverless functions. **₹0 hosting** on Vercel's free tier.
 

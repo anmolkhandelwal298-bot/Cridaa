@@ -162,7 +162,7 @@
     state.query = '';
     const text = locText(loc);
     el.locLabel.textContent = loc.area || loc.city || 'Your location';
-    document.title = `Sports Turfs & Courts in ${text} | Cridaa`;
+    document.title = `Sports Venues in ${text} – Turfs, Courts & Grounds | Cridaa`;
     el.mapGmaps.href = `https://www.google.com/maps/@${loc.lat},${loc.lng},14z`;
     if (persist) store.set('cridaa.loc', loc);
     loadVenues();
@@ -435,7 +435,7 @@
     const data = {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      name: `Sports turfs and courts near ${locText(state.loc)}`,
+      name: `Sports venues near ${locText(state.loc)}`,
       itemListElement: shown.slice(0, 20).map((v, i) => ({
         '@type': 'ListItem', position: i + 1,
         item: {
