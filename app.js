@@ -609,12 +609,14 @@
       website: f.website.value, // honeypot
     };
     el.lsubmit.disabled = true; el.lsubmit.textContent = 'Sending…';
+    // Look up the venue's number from Google in parallel with saving the lead (only now, never before the form is submitted).
+    const phonePromise = v.id ? api(`/places?action=phone&id=${encodeURIComponent(v.id)}`).catch(() => null) : Promise.resolve(null);
     try {
       const res = await fetch(`${API}/capture-lead`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const ct = res.headers.get('content-type') || '';
       const data = ct.includes('json') ? await res.json() : {};
       if (!res.ok) throw new Error(data.errors ? Object.values(data.errors).join('. ') : data.error === 'rate_limited' ? 'Too many attempts – please wait a minute.' : 'Something went wrong. Please try again.');
-      await showSuccess(payload.fullName.split(' ')[0], v);
+      await showSuccess(payload.fullName.split(' ')[0], v, phonePromise);
     } catch (err) {
       el.lerr.textContent = err.message;
       el.lerr.classList.remove('hidden');
@@ -622,23 +624,32 @@
     }
   }
 
-  async function showSuccess(firstName, venue) {
+  // Phones/tablets have a dialer; on laptops "tel:" would pop up an unrelated app, so we only show the number there.
+  const hasDialer = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+  async function showSuccess(firstName, venue, phonePromise) {
     $('success-name').textContent = firstName;
     const call = $('success-call');
     call.classList.add('hidden'); call.classList.remove('flex');
-    $('success-msg').textContent = 'Fetching the venue’s number…';
+    $('success-msg').textContent = 'Getting the venue’s number…';
     el.lform.classList.add('hidden');
     el.success.classList.remove('hidden');
     $('success-close').focus();
-    let phone = null;
-    if (venue.id) { try { phone = await api(`/places?action=phone&id=${encodeURIComponent(venue.id)}`); } catch { /* handled below */ } }
-    if (phone && phone.tel) {
-      $('success-msg').textContent = `Here’s the number for ${venue.name}.`;
-      call.href = `tel:${phone.tel}`;
-      call.textContent = `📞 Call ${phone.phone}`;
-      call.classList.remove('hidden'); call.classList.add('flex');
+    const phone = await phonePromise;
+    if (!phone || !phone.tel) {
+      $('success-msg').textContent = 'We’ve noted your request. The venue’s number isn’t available right now – we’ll reach out to you shortly.';
+      return;
+    }
+    call.href = `tel:${phone.tel}`;
+    call.textContent = `📞 Call ${phone.phone}`;
+    call.classList.remove('hidden'); call.classList.add('flex');
+    if (hasDialer()) {
+      $('success-msg').textContent = `Opening your phone app to call ${venue.name}…`;
+      // Straight after the tap, so the browser allows it. The button above is the fallback if it doesn't open.
+      window.location.href = call.href;
+      setTimeout(() => { $('success-msg').textContent = 'Tap the button if your phone app didn’t open.'; }, 1500);
     } else {
-      $('success-msg').textContent = 'We’ve noted your request. The venue’s number isn’t available yet – we’ll reach out to you shortly.';
+      $('success-msg').textContent = `Here’s the number for ${venue.name}. On your phone it opens the dialer.`;
     }
   }
 
