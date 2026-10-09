@@ -2,10 +2,12 @@
  * Minimal Supabase (PostgREST) client using fetch — no npm dependencies.
  * SUPABASE_URL and SUPABASE_SERVICE_KEY are server-only env vars (never sent to the browser).
  */
-const enabled = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
+// The Vercel↔Supabase integration names the key SUPABASE_SERVICE_ROLE_KEY; manual setup uses SUPABASE_SERVICE_KEY. Either works.
+const serviceKey = () => process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const enabled = () => Boolean(process.env.SUPABASE_URL && serviceKey());
 
 function headers() {
-  const key = process.env.SUPABASE_SERVICE_KEY;
+  const key = serviceKey();
   const h = { apikey: key, 'Content-Type': 'application/json' };
   if (key.startsWith('eyJ')) h.Authorization = `Bearer ${key}`; // legacy JWT-style keys; new sb_secret_ keys use apikey only
   return h;

@@ -99,6 +99,8 @@ Tracks **live visitors**, **most-interacted sport**, a visit→lead funnel, and 
    | `SUPABASE_SERVICE_KEY` | the secret / service_role key |
    | `ADMIN_PASSWORD` | a long password (8+ characters) for the dashboard |
 
+   *Shortcut:* in Vercel → *Storage / Integrations → Supabase → Connect* adds `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for you (the code accepts either name). You still need step 2 and `ADMIN_PASSWORD`.
+
 5. Open **`https://yourdomain.com/admin`** and sign in. It refreshes every 15 seconds.
 
 What it records:
