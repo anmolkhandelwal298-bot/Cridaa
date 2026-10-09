@@ -123,6 +123,39 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
+
+  // ---------------------------------------------------------------- analytics (anonymous; see api/track.js)
+  const uid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const keep = (storage, k) => { try { let v = storage.getItem(k); if (!v) { v = uid(); storage.setItem(k, v); } return v; } catch { return uid(); } };
+  const SID = keep(window.sessionStorage, 'cridaa.sid');   // one per browser tab
+  const VID = keep(window.localStorage, 'cridaa.vid');     // returning-visitor id (no cookies, no personal data)
+  const qsAll = new URLSearchParams(location.search);
+  const host = (u) => { try { return new URL(u).hostname; } catch { return ''; } };
+  let tracking = false; // switched on once a real backend responds (stays off in demo mode)
+
+  function track(type, extra = {}) {
+    if (!tracking) return;
+    const body = JSON.stringify({
+      sessionId: SID, visitorId: VID, type,
+      city: state.loc ? state.loc.city || '' : '', area: state.loc ? state.loc.area || '' : '',
+      device: window.matchMedia('(max-width: 767px)').matches ? 'mobile' : 'desktop',
+      referrer: host(document.referrer) === location.hostname ? '' : host(document.referrer),
+      utmSource: qsAll.get('utm_source') || '', utmMedium: qsAll.get('utm_medium') || '', utmCampaign: qsAll.get('utm_campaign') || '',
+      ...extra,
+    });
+    try {
+      if (navigator.sendBeacon && navigator.sendBeacon(`${API}/track`, new Blob([body], { type: 'application/json' }))) return;
+      fetch(`${API}/track`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
+    } catch { /* analytics must never break the page */ }
+  }
+  const venueCtx = (v) => ({ sport: primarySport(v), venueName: v.name, venueId: v.id || '' });
+  function startTracking() {
+    if (tracking || state.demo) return;
+    tracking = true;
+    track('page_view');
+    setInterval(() => { if (document.visibilityState === 'visible') track('heartbeat'); }, 30000); // powers "live now"
+  }
+
   // ---------------------------------------------------------------- location
   function setLocation(loc, { persist = true } = {}) {
     state.loc = loc;
@@ -185,10 +218,11 @@
     const q = text.trim().toLowerCase();
     if (q.length < 2) return;
     const key = Object.keys(ALIASES).find((k) => q.includes(k));
-    if (key) { state.query = ''; setSport(ALIASES[key]); $('explore').scrollIntoView(); return; }
+    if (key) { state.query = ''; track('search'); setSport(ALIASES[key]); $('explore').scrollIntoView(); return; }
     if (state.venues.some((v) => v.name.toLowerCase().includes(q))) {
-      state.query = q; render(); $('results').scrollIntoView(); return;
+      state.query = q; track('search'); render(); $('results').scrollIntoView(); return;
     }
+    track('search');
     searchLocation(text);
   }
 
@@ -211,6 +245,7 @@
     state.venues.forEach((v) => { v.km = distanceKm(state.loc, v); });
     el.demo.classList.toggle('hidden', !state.demo);
     render();
+    startTracking();
   }
 
   /** Sample data so the UI is reviewable without a backend. Clearly flagged by the demo banner. */
@@ -426,6 +461,7 @@
 
   function setSport(id) {
     state.sport = id;
+    track('sport_filter', { sport: id });
     el.chips.querySelectorAll('[data-sport]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.sport === id)));
     const url = new URL(location.href);
     id === 'all' ? url.searchParams.delete('sport') : url.searchParams.set('sport', id);
@@ -473,6 +509,7 @@
 
   function openDetail(v) {
     state.active = v;
+    track('card_open', venueCtx(v));
     const seq = ++detailSeq, sid = primarySport(v);
     dView.sid = sid;
     const img = $('d-photo');
@@ -529,6 +566,7 @@
   // ---------------------------------------------------------------- lead modal
   function openLead(venue) {
     state.active = venue;
+    track('call_click', venueCtx(venue));
     el.lform.reset();
     el.lform.classList.remove('hidden');
     el.success.classList.add('hidden');
@@ -567,7 +605,7 @@
       // attribution
       pageUrl: location.href, referrer: document.referrer,
       utmSource: qs.get('utm_source') || '', utmMedium: qs.get('utm_medium') || '', utmCampaign: qs.get('utm_campaign') || '',
-      consent: f.consent.checked,
+      consent: f.consent.checked, sessionId: SID,
       website: f.website.value, // honeypot
     };
     el.lsubmit.disabled = true; el.lsubmit.textContent = 'Sending…';

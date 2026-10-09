@@ -11,6 +11,8 @@ cridaa/
 │   ├── _util.js        # rate limit, origin check, helpers (not routed)
 │   ├── places.js       # secure Google Geocoding + Places proxy (reads process.env.GOOGLE_MAPS_API_KEY)
 │   └── capture-lead.js # validates lead → Google Sheet and/or Web3Forms
+├── admin.html          # private dashboard (live visitors, sports, funnel, leads, CSV)
+├── db/schema.sql       # Postgres tables + functions for Supabase
 ├── vercel.json  favicon.svg  robots.txt  sitemap.xml  .env.example  .gitignore
 ```
 
@@ -25,6 +27,7 @@ cridaa/
    | Name | Value |
    |---|---|
    | `GOOGLE_MAPS_API_KEY` | your key (server-only; never shipped to the browser) |
+   | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `ADMIN_PASSWORD` | database + dashboard (below) |
    | `LEAD_WEBHOOK_URL` + `LEAD_WEBHOOK_SECRET` | Option A below |
    | `WEB3FORMS_ACCESS_KEY` | Option B below |
    | `ALLOWED_ORIGINS` *(optional)* | `https://yourdomain.com` |
@@ -80,6 +83,36 @@ Get a free access key at [web3forms.com](https://web3forms.com) and set `WEB3FOR
 - Coordinates are rounded to ~1 km before calling `/api`, and responses carry `s-maxage` headers, so Vercel's CDN serves repeat searches without hitting Google.
 - The city dropdown uses built-in coordinates (no geocoding call). Photos load lazily and are cached for 24 h.
 - Per-IP rate limiting (best effort, in-memory), param clamping and photo-reference validation limit abuse of the proxy.
+
+## Analytics database + admin dashboard (free, Supabase)
+
+Tracks **live visitors**, **most-interacted sport**, a visit→lead funnel, and **every form entry**. Anonymous: only random ids are stored (no IP, no cookies).
+
+1. **Create the database** – [supabase.com](https://supabase.com) → New project (free plan). Pick the region closest to your users (Mumbai if available) and save the database password.
+2. **Create the tables** – Supabase → *SQL Editor → New query* → paste all of `db/schema.sql` → *Run*. This creates `sessions`, `events`, `leads`, locks them down with Row Level Security (the public key can read nothing) and adds the two functions the site calls.
+3. **Copy the keys** – *Project Settings → API*: the **Project URL**, and the **service_role / secret key**. The secret key is server-only: never put it in `app.js`.
+4. **Add to Vercel → Environment Variables** (mark the key and password as *Secret*), then redeploy:
+
+   | Name | Value |
+   |---|---|
+   | `SUPABASE_URL` | `https://xxxx.supabase.co` |
+   | `SUPABASE_SERVICE_KEY` | the secret / service_role key |
+   | `ADMIN_PASSWORD` | a long password (8+ characters) for the dashboard |
+
+5. Open **`https://yourdomain.com/admin`** and sign in. It refreshes every 15 seconds.
+
+What it records:
+
+| What | How |
+|---|---|
+| **Live now** | each open tab pings `/api/track` every 30 s; "live" = pinged in the last 2 minutes, with a split by city |
+| **Footfall** | unique visitors and sessions per day (IST), last 14 days, plus the selected period |
+| **Most interacted sport** | every sport-filter click, card opened and "Call Now" click, counted per sport |
+| **Top venues / areas** | cards opened and calls per venue, sessions per area |
+| **Funnel** | sessions → opened a place → clicked Call Now → submitted the form |
+| **All form entries** | every lead (name, phone, email, age group, turf, sport, user area, UTM, source), searchable, with CSV download |
+
+Notes: the Supabase free plan pauses projects after about a week of no activity (just resume it) and has a 500 MB limit, which is hundreds of thousands of events. If you operate under India's DPDP Act or GDPR, mention the anonymous analytics in your privacy policy. To purge old events, run `delete from events where created_at < now() - interval '180 days';` in the SQL Editor.
 
 ## Keeping out shops and stadiums (`api/_filter.js`)
 Text search returns anything vaguely matching "football" or "badminton", including sports shops and big stadiums. Every result passes two gates:

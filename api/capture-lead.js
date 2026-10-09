@@ -2,12 +2,14 @@
  * POST /api/capture-lead
  *
  * Validates a lead from the "Call Now" modal and forwards it — server side, so no
- * secret ever reaches the browser — to one or both of:
- *   A) Google Sheet via an Apps Script web-app   → LEAD_WEBHOOK_URL (+ LEAD_WEBHOOK_SECRET)
- *   B) Web3Forms (email + dashboard)             → WEB3FORMS_ACCESS_KEY
+ * secret ever reaches the browser — to any of:
+ *   A) Database (Supabase Postgres, powers /admin)→ SUPABASE_URL + SUPABASE_SERVICE_KEY
+ *   B) Google Sheet via an Apps Script web-app   → LEAD_WEBHOOK_URL (+ LEAD_WEBHOOK_SECRET)
+ *   C) Web3Forms (email + dashboard)             → WEB3FORMS_ACCESS_KEY
  * At least one must be configured.
  */
 const { rateLimit, originAllowed, send } = require('./_util');
+const db = require('./_db');
 
 const AGE_GROUPS = ['Under 18', '18-25', '26-35', '36+'];
 const clip = (v, n) => String(v ?? '').trim().slice(0, n);
@@ -61,19 +63,32 @@ module.exports = async function handler(req, res) {
     // server-side facts (cannot be spoofed by the client)
     submittedAt: new Date().toISOString(),
     userAgent: clip(req.headers['user-agent'], 200),
+    sessionId: /^[\w-]{8,64}$/.test(b.sessionId || '') ? b.sessionId : '',
     consent: true,
   };
 
   const jobs = [];
   if (process.env.LEAD_WEBHOOK_URL) jobs.push(toSheet(lead));
   if (process.env.WEB3FORMS_ACCESS_KEY) jobs.push(toWeb3Forms(lead));
-  if (!jobs.length) return send(res, 500, { error: 'server_not_configured', message: 'Set LEAD_WEBHOOK_URL and/or WEB3FORMS_ACCESS_KEY' });
+  if (db.enabled()) jobs.push(toDatabase(lead));
+  if (!jobs.length) return send(res, 500, { error: 'server_not_configured', message: 'Set SUPABASE_URL + SUPABASE_SERVICE_KEY, LEAD_WEBHOOK_URL and/or WEB3FORMS_ACCESS_KEY' });
 
   const settled = await Promise.allSettled(jobs);
   settled.filter((s) => s.status === 'rejected').forEach((s) => console.error('[lead] forward failed:', s.reason));
   if (!settled.some((s) => s.status === 'fulfilled')) return send(res, 502, { error: 'forward_failed' });
   return send(res, 200, { ok: true });
 };
+
+async function toDatabase(l) {
+  await db.insert('leads', {
+    full_name: l.fullName, phone: l.phone, email: l.email, age_group: l.ageGroup,
+    turf_name: l.turfName, turf_place_id: l.turfPlaceId, turf_area: l.turfArea,
+    sport: l.sport, sport_filter: l.sportFilter,
+    user_area: l.userArea, user_city: l.userCity, location_source: l.locationSource, distance_km: l.distanceKm,
+    page_url: l.pageUrl, referrer: l.referrer, utm_source: l.utmSource, utm_medium: l.utmMedium, utm_campaign: l.utmCampaign,
+    user_agent: l.userAgent, session_id: l.sessionId || null, consent: l.consent,
+  });
+}
 
 async function toSheet(lead) {
   const row = Object.fromEntries(Object.entries(lead).map(([k, v]) => [k, typeof v === 'string' ? safeCell(v) : v]));

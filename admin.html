@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cridaa Admin</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      fontFamily: { sans: ['DM Sans', 'system-ui', 'sans-serif'], display: ['Bricolage Grotesque', 'DM Sans', 'sans-serif'] },
+      colors: { ink: '#14353d', teal: { DEFAULT: '#2bbfcf', dark: '#0d8a98' }, coral: { DEFAULT: '#f07a62', dark: '#d8604a' }, mist: '#f2f9f9', line: '#dce9ea', muted: '#6c8a90' }
+    } } };
+  </script>
+  <style>
+    .bar { transition: width .4s; }
+    .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .35; transform: scale(.85); } }
+    @media (prefers-reduced-motion: reduce) { .pulse-dot, .bar { animation: none; transition: none; } }
+    input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid #2bbfcf; outline-offset: 2px; }
+  </style>
+</head>
+<body class="min-h-screen bg-mist font-sans text-ink antialiased">
+
+  <!-- Login -->
+  <main id="login" class="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
+    <h1 class="font-display text-3xl font-semibold">Cridaa admin</h1>
+    <p class="mt-1 text-muted">Enter the admin password to view live stats and leads.</p>
+    <form id="login-form" class="mt-6 space-y-3">
+      <label class="sr-only" for="pw">Admin password</label>
+      <input id="pw" type="password" autocomplete="current-password" required class="w-full rounded-xl border border-line bg-white px-4 py-3">
+      <button class="w-full rounded-xl bg-coral px-4 py-3 font-semibold text-white hover:bg-coral-dark">Sign in</button>
+      <p id="login-err" class="hidden text-sm text-red-600" role="alert"></p>
+    </form>
+  </main>
+
+  <!-- Dashboard -->
+  <div id="app" class="hidden">
+    <header class="border-b border-line bg-white">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <h1 class="font-display text-2xl font-semibold">Cridaa <span class="text-teal-dark">admin</span></h1>
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <span id="updated" class="text-muted"></span>
+          <label class="flex items-center gap-2"><span class="text-muted">Period</span>
+            <select id="days" class="rounded-lg border border-line bg-white px-2 py-1.5">
+              <option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option>
+            </select></label>
+          <button id="refresh" class="rounded-lg border border-line bg-white px-3 py-1.5 font-semibold hover:bg-mist">Refresh</button>
+          <button id="logout" class="rounded-lg px-3 py-1.5 font-semibold text-muted hover:text-ink">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+      <p id="app-err" class="hidden rounded-xl border border-red-200 bg-red-50 p-4 text-red-700" role="alert"></p>
+
+      <!-- KPIs -->
+      <section aria-label="Key numbers" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border border-line bg-white p-5">
+          <p class="flex items-center gap-2 text-sm text-muted"><span class="pulse-dot h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Live now</p>
+          <p id="k-live" class="mt-1 font-display text-4xl font-semibold">–</p>
+          <p id="k-live-city" class="mt-1 truncate text-xs text-muted">active in the last 2 minutes</p>
+        </div>
+        <div class="rounded-2xl border border-line bg-white p-5"><p class="text-sm text-muted">Visitors today</p><p id="k-today" class="mt-1 font-display text-4xl font-semibold">–</p><p id="k-period" class="mt-1 text-xs text-muted"></p></div>
+        <div class="rounded-2xl border border-line bg-white p-5"><p class="text-sm text-muted">Leads today</p><p id="k-leads-today" class="mt-1 font-display text-4xl font-semibold">–</p><p id="k-leads-total" class="mt-1 text-xs text-muted"></p></div>
+        <div class="rounded-2xl border border-line bg-white p-5"><p class="text-sm text-muted">Visit → lead rate</p><p id="k-rate" class="mt-1 font-display text-4xl font-semibold">–</p><p class="mt-1 text-xs text-muted">leads per session, selected period</p></div>
+      </section>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <!-- Footfall -->
+        <section aria-labelledby="h-foot" class="rounded-2xl border border-line bg-white p-5">
+          <h2 id="h-foot" class="font-display text-xl font-semibold">Daily visitors · last 14 days</h2>
+          <div id="daily" class="mt-4 flex h-44 items-end gap-1.5" role="img" aria-label="Daily visitors bar chart"></div>
+          <div id="daily-axis" class="mt-1 flex gap-1.5 text-[10px] text-muted"></div>
+        </section>
+
+        <!-- Sports -->
+        <section aria-labelledby="h-sport" class="rounded-2xl border border-line bg-white p-5">
+          <h2 id="h-sport" class="font-display text-xl font-semibold">Most interacted sport</h2>
+          <p class="text-xs text-muted">Filter clicks + cards opened + “Call Now” clicks</p>
+          <ul id="sports" class="mt-4 space-y-3"></ul>
+        </section>
+
+        <!-- Funnel -->
+        <section aria-labelledby="h-fun" class="rounded-2xl border border-line bg-white p-5">
+          <h2 id="h-fun" class="font-display text-xl font-semibold">Funnel</h2>
+          <ul id="funnel" class="mt-4 space-y-3"></ul>
+        </section>
+
+        <!-- Venues / areas -->
+        <section class="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div class="rounded-2xl border border-line bg-white p-5">
+            <h2 class="font-display text-xl font-semibold">Top venues</h2>
+            <ul id="venues" class="mt-3 divide-y divide-line text-sm"></ul>
+          </div>
+          <div class="rounded-2xl border border-line bg-white p-5">
+            <h2 class="font-display text-xl font-semibold">Top areas</h2>
+            <ul id="areas" class="mt-3 divide-y divide-line text-sm"></ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- Leads -->
+      <section aria-labelledby="h-leads" class="rounded-2xl border border-line bg-white p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="h-leads" class="font-display text-xl font-semibold">Form entries <span id="leads-count" class="text-base text-muted"></span></h2>
+          <div class="flex gap-2">
+            <label class="sr-only" for="lead-filter">Filter leads</label>
+            <input id="lead-filter" type="search" placeholder="Filter by name, phone, turf, sport…" class="w-64 max-w-full rounded-lg border border-line px-3 py-2 text-sm">
+            <button id="csv" class="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white">Download CSV</button>
+          </div>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full min-w-[56rem] text-left text-sm">
+            <thead class="text-xs uppercase tracking-wider text-muted"><tr>
+              <th class="py-2 pr-3">When</th><th class="pr-3">Name</th><th class="pr-3">Phone</th><th class="pr-3">Email</th><th class="pr-3">Age</th>
+              <th class="pr-3">Turf</th><th class="pr-3">Sport</th><th class="pr-3">User area</th><th>Source</th></tr></thead>
+            <tbody id="leads" class="divide-y divide-line"></tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-xs text-muted">Shows the latest 500. Contains personal data: keep this page private.</p>
+      </section>
+    </main>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const SPORT = { football: 'Football', 'box-cricket': 'Box Cricket', badminton: 'Badminton', pickleball: 'Pickleball', tennis: 'Tennis', multi: 'Multi-sport' };
+  let key = '', data = null, timer = null;
+  try { key = sessionStorage.getItem('cridaa.admin') || ''; } catch { /* ignore */ }
+
+  const bars = (rows, label, value, color) => {
+    const max = Math.max(1, ...rows.map(value));
+    return rows.map((r) => `<li><div class="flex justify-between text-sm"><span class="font-medium">${esc(label(r))}</span><span class="text-muted">${value(r)}</span></div>
+      <div class="mt-1 h-2.5 rounded-full bg-mist"><div class="bar h-2.5 rounded-full ${color}" style="width:${(value(r) / max) * 100}%"></div></div></li>`).join('');
+  };
+
+  async function load() {
+    $('app-err').classList.add('hidden');
+    try {
+      const res = await fetch(`/api/admin-stats?days=${$('days').value}`, { headers: { 'x-admin-key': key }, cache: 'no-store' });
+      if (res.status === 401) { signOut('Wrong password.'); return; }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || body.error || 'Request failed');
+      data = body; render();
+    } catch (e) {
+      $('app-err').textContent = e.message; $('app-err').classList.remove('hidden');
+    }
+  }
+
+  function render() {
+    const d = data;
+    $('k-live').textContent = d.live_now;
+    $('k-live-city').textContent = d.live_by_city.length ? d.live_by_city.map((c) => `${c.city} ${c.n}`).join(' · ') : 'active in the last 2 minutes';
+    $('k-today').textContent = d.visitors_today;
+    $('k-period').textContent = `${d.visitors_period} unique · ${d.sessions_period} sessions in period`;
+    $('k-leads-today').textContent = d.leads_today;
+    $('k-leads-total').textContent = `${d.leads_total} all time`;
+    $('k-rate').textContent = d.sessions_period ? `${((d.funnel.submitted / d.sessions_period) * 100).toFixed(1)}%` : '–';
+
+    const max = Math.max(1, ...d.daily_visitors.map((x) => x.visitors));
+    $('daily').innerHTML = d.daily_visitors.map((x) => `<div class="relative flex h-full flex-1 flex-col justify-end" title="${esc(x.day)}: ${x.visitors}">
+      <span class="mb-1 text-center text-[10px] text-muted">${x.visitors || ''}</span><div class="rounded-t bg-teal" style="height:${Math.max(2, (x.visitors / max) * 100)}%"></div></div>`).join('');
+    $('daily-axis').innerHTML = d.daily_visitors.map((x) => `<span class="flex-1 text-center">${esc(x.day.slice(8))}</span>`).join('');
+
+    $('sports').innerHTML = d.top_sports.length
+      ? bars(d.top_sports, (s) => `${SPORT[s.sport] || s.sport}  ·  ${s.calls} call click${s.calls === 1 ? '' : 's'}`, (s) => s.interactions, 'bg-coral')
+      : '<li class="text-sm text-muted">No interactions yet.</li>';
+
+    const f = d.funnel, top = Math.max(1, f.sessions);
+    $('funnel').innerHTML = [['Sessions', f.sessions], ['Opened a place', f.opened], ['Clicked Call Now', f.called], ['Submitted the form', f.submitted]]
+      .map(([l, n]) => `<li><div class="flex justify-between text-sm"><span class="font-medium">${l}</span><span class="text-muted">${n} · ${((n / top) * 100).toFixed(0)}%</span></div>
+        <div class="mt-1 h-2.5 rounded-full bg-mist"><div class="bar h-2.5 rounded-full bg-teal" style="width:${(n / top) * 100}%"></div></div></li>`).join('');
+
+    $('venues').innerHTML = d.top_venues.map((v) => `<li class="flex justify-between gap-3 py-2"><span class="truncate">${esc(v.venue_name)}</span><span class="shrink-0 text-muted">${v.opens} open${v.opens === 1 ? "" : "s"} · ${v.calls} call${v.calls === 1 ? "" : "s"}</span></li>`).join('') || '<li class="py-2 text-muted">No data yet.</li>';
+    $('areas').innerHTML = d.top_areas.map((a) => `<li class="flex justify-between gap-3 py-2"><span class="truncate">${esc(a.area)}</span><span class="shrink-0 text-muted">${a.sessions}</span></li>`).join('') || '<li class="py-2 text-muted">No data yet.</li>';
+
+    renderLeads();
+    $('updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+  }
+
+  const filtered = () => {
+    const q = $('lead-filter').value.trim().toLowerCase();
+    return data.recent_leads.filter((l) => !q || [l.full_name, l.phone, l.email, l.turf_name, l.sport, l.user_area].join(' ').toLowerCase().includes(q));
+  };
+  function renderLeads() {
+    const rows = filtered();
+    $('leads-count').textContent = `(${rows.length}${rows.length !== data.recent_leads.length ? ' of ' + data.recent_leads.length : ''})`;
+    $('leads').innerHTML = rows.map((l) => `<tr class="align-top">
+      <td class="whitespace-nowrap py-2 pr-3 text-muted">${esc(new Date(l.created_at).toLocaleString())}</td>
+      <td class="pr-3 font-medium">${esc(l.full_name)}</td><td class="pr-3"><a class="text-teal-dark hover:underline" href="tel:${esc(l.phone)}">${esc(l.phone)}</a></td>
+      <td class="pr-3">${esc(l.email)}</td><td class="pr-3">${esc(l.age_group)}</td><td class="pr-3">${esc(l.turf_name)}</td>
+      <td class="pr-3">${esc(l.sport)}</td><td class="pr-3">${esc(l.user_area)}</td><td class="text-muted">${esc(l.utm_source || l.referrer || 'direct')}</td></tr>`).join('')
+      || '<tr><td colspan="9" class="py-6 text-center text-muted">No entries yet.</td></tr>';
+  }
+
+  function csv() {
+    const cols = ['created_at', 'full_name', 'phone', 'email', 'age_group', 'turf_name', 'turf_area', 'sport', 'sport_filter', 'user_area', 'user_city', 'location_source', 'distance_km', 'utm_source', 'utm_medium', 'utm_campaign', 'referrer', 'page_url'];
+    // Prefix risky cells so Excel/Sheets never run them as formulas.
+    const cell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+    const text = [cols.join(','), ...filtered().map((l) => cols.map((c) => cell(l[c])).join(','))].join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    a.download = `cridaa-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  function show() {
+    $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+    load(); clearInterval(timer); timer = setInterval(() => { if (document.visibilityState === 'visible') load(); }, 15000); // live refresh
+  }
+  function signOut(msg) {
+    clearInterval(timer); key = '';
+    try { sessionStorage.removeItem('cridaa.admin'); } catch { /* ignore */ }
+    $('app').classList.add('hidden'); $('login').classList.remove('hidden');
+    $('login-err').textContent = msg || ''; $('login-err').classList.toggle('hidden', !msg);
+  }
+
+  $('login-form').addEventListener('submit', (e) => {
+    e.preventDefault(); key = $('pw').value;
+    try { sessionStorage.setItem('cridaa.admin', key); } catch { /* ignore */ }
+    show();
+  });
+  $('refresh').addEventListener('click', load);
+  $('days').addEventListener('change', load);
+  $('logout').addEventListener('click', () => signOut(''));
+  $('lead-filter').addEventListener('input', () => data && renderLeads());
+  $('csv').addEventListener('click', () => data && csv());
+  if (key) show();
+})();
+</script>
+</body>
+</html>
