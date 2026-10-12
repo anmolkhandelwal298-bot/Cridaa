@@ -41,7 +41,7 @@ create table if not exists public.leads (
   created_at       timestamptz not null default now(),
   full_name        text not null,
   phone            text not null,
-  email            text not null,
+  email            text,                          -- no longer collected by the form (kept for older rows)
   age_group        text not null,
   turf_name        text,
   turf_place_id    text,
@@ -62,6 +62,8 @@ create table if not exists public.leads (
   consent          boolean not null default false
 );
 create index if not exists leads_created_idx on public.leads (created_at desc);
+-- Existing databases: the form no longer asks for an email, so the column must allow nulls.
+alter table public.leads alter column email drop not null;
 
 -- ============ SECURITY ============
 -- RLS on with NO policies = the public anon key can read/write nothing.

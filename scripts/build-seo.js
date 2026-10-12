@@ -25,6 +25,67 @@ const SITE = (process.env.SITE_URL || currentSite || 'https://cridaa.com').repla
 if (currentSite && currentSite !== SITE) home = home.split(currentSite).join(SITE);
 
 const between = (s, a, b) => { const i = s.indexOf(a), j = s.indexOf(b); if (i < 0 || j < 0) throw new Error(`marker ${a} / ${b} missing in index.html`); return [i, j + b.length]; };
+// ---------------------------------------------------------------- shared <head> (home + every landing page)
+const HOME_META = {
+  title: 'Cridaa – Sports Venues Near Me | Courts & Turfs Directory',
+  desc: 'Directory of sports venues near you: box cricket and football turfs, badminton, pickleball and tennis courts. Photos, ratings, timings and distance.',
+  keywords: 'sports venues near me, badminton court near me, box cricket turf near me, football turf near me, pickleball court near me, tennis court near me, sports turf directory',
+};
+function headBlock({ title, desc, url, keywords, graph, geo }) {
+  const t = esc(title), d = esc(desc);
+  return `<!--@head-start-->
+  <title>${t}</title>
+  <meta name="description" content="${d}">
+  <meta name="keywords" content="${esc(keywords)}">
+  <meta name="author" content="Cridaa">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="${url}">
+  <link rel="alternate" hreflang="en-IN" href="${url}">
+  <link rel="alternate" hreflang="x-default" href="${url}">
+  ${geo ? `<meta name="geo.region" content="IN">\n  <meta name="geo.placename" content="${esc(geo.name)}">\n  <meta name="geo.position" content="${geo.lat};${geo.lng}">\n  <meta name="ICBM" content="${geo.lat}, ${geo.lng}">` : '<meta name="geo.region" content="IN">'}
+  <meta name="theme-color" content="#f2f9f9">
+  <meta name="color-scheme" content="light">
+  <meta name="application-name" content="Cridaa">
+  <meta name="apple-mobile-web-app-title" content="Cridaa">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Cridaa">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:title" content="${t}">
+  <meta property="og:description" content="${d}">
+  <meta property="og:url" content="${url}">
+  <meta property="og:image" content="${SITE}/og-image.png">
+  <meta property="og:image:secure_url" content="${SITE}/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Cridaa – every sports venue near you, in one place">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${t}">
+  <meta name="twitter:description" content="${d}">
+  <meta name="twitter:image" content="${SITE}/og-image.png">
+  <meta name="twitter:image:alt" content="Cridaa – every sports venue near you, in one place">
+  <script type="application/ld+json">
+  ${JSON.stringify(graph)}
+  </script>
+  <!--@head-end-->`;
+}
+const ORG = (site) => ({ '@type': 'Organization', '@id': site + '/#org', name: 'Cridaa', url: site + '/', logo: site + '/icon-512.png' });
+{
+  const graph = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG(SITE),
+      { '@type': 'WebSite', '@id': SITE + '/#website', url: SITE + '/', name: 'Cridaa', description: 'Directory of sports venues near you: turfs, courts and grounds', inLanguage: 'en-IN', publisher: { '@id': SITE + '/#org' } },
+      { '@type': 'ItemList', name: 'Sports venues on Cridaa', itemListElement: SPORTS.map((s, k) => ({ '@type': 'ListItem', position: k + 1, name: s.nearMe, url: SITE + '/' + s.slug })) },
+    ],
+  };
+  home = swap(home, '<!--@head-start-->', '<!--@head-end-->', headBlock({ ...HOME_META, url: SITE + '/', graph }));
+}
+
 const pageUrl = (sport, city) => `/${sport.slug}${city ? '/' + city.slug : ''}`;
 
 // ---------------------------------------------------------------- shared link sections (home + every page)
@@ -70,40 +131,27 @@ function pageHtml({ sport, city }) {
   const cityName = city ? city.name : 'me';
   const h1Core = city ? `${sport.name === 'Box Cricket' ? 'Box cricket turfs' : cap(sport.plural)} in ` : `${cap(sport.plural)} `;
   const title = city
-    ? `${titleCase(sport.plural)} in ${city.name} – Near Me, Timings & Ratings | Cridaa`
-    : `${titleCase(sport.plural)} Near Me – Photos, Timings & Ratings | Cridaa`;
+    ? `${titleCase(sport.plural)} in ${city.name} – Timings & Ratings | Cridaa`
+    : `${titleCase(sport.plural)} Near Me – Timings & Ratings | Cridaa`;
   const desc = city
-    ? `Find the best ${sport.plural} in ${city.name}, including ${list(city.areas.slice(0, 3))}. Compare photos, Google ratings, timings and distance, then call the venue directly.`
-    : `Find ${sport.plural} near you. Compare photos, Google ratings, opening timings and distance, then call the venue directly. ${sport.tagline}`;
+    ? `Find ${sport.plural} in ${city.name}, from ${list(city.areas.slice(0, 3))}. Compare photos, ratings, timings and distance, then call the venue.`
+    : `Find ${sport.plural} near you. Compare photos, ratings, timings and distance, then call the venue directly.`;
   const url = SITE + pageUrl(sport, city);
   const crumbs = [['Cridaa', '/'], [cap(sport.plural), pageUrl(sport)]].concat(city ? [[city.name, pageUrl(sport, city)]] : []);
 
-  const head = `<!--@head-start-->
-  <title>${esc(title)}</title>
-  <meta name="description" content="${esc(desc)}">
-  <link rel="canonical" href="${url}">
-  <meta name="robots" content="index, follow, max-image-preview:large">
-  <meta name="theme-color" content="#f2f9f9">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Cridaa">
-  <meta property="og:title" content="${esc(title)}">
-  <meta property="og:description" content="${esc(desc)}">
-  <meta property="og:url" content="${url}">
-  <meta property="og:image" content="${SITE}/og-image.jpg">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${esc(title)}">
-  <meta name="twitter:description" content="${esc(desc)}">
-  <script type="application/ld+json">
-  ${JSON.stringify({
-    '@context': 'https://schema.org',
-    '@graph': [
-      { '@type': 'WebPage', '@id': url + '#page', url, name: title, description: desc, isPartOf: { '@type': 'WebSite', name: 'Cridaa', url: SITE + '/' } },
-      { '@type': 'BreadcrumbList', itemListElement: crumbs.map(([name, p], k) => ({ '@type': 'ListItem', position: k + 1, name, item: SITE + p })) },
-    ],
-  })}
-  </script>
-  <!--@head-end-->`;
+  const head = headBlock({
+    title, desc, url,
+    keywords: [sport.nearMe, `${sport.plural} ${city ? 'in ' + city.name : 'near me'}`, city ? `${sport.singular} ${city.name}` : `best ${sport.plural}`, ...(city ? city.areas.slice(0, 3).map((a) => `${sport.singular} ${a}`) : []), 'sports venues near me'].join(', '),
+    geo: city,
+    graph: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG(SITE),
+        { '@type': 'WebPage', '@id': url + '#page', url, name: title, description: desc, inLanguage: 'en-IN', isPartOf: { '@type': 'WebSite', name: 'Cridaa', url: SITE + '/' } },
+        { '@type': 'BreadcrumbList', itemListElement: crumbs.map(([name, p], k) => ({ '@type': 'ListItem', position: k + 1, name, item: SITE + p })) },
+      ],
+    },
+  });
 
   const hero = `<!--@hero-start-->
           <nav aria-label="Breadcrumb" class="mb-5 text-sm text-muted">${crumbs.map(([n, p], k) => (k < crumbs.length - 1 ? `<a class="hover:text-teal-dark hover:underline" href="${p}">${esc(n)}</a> <span aria-hidden="true">›</span> ` : `<span aria-current="page">${esc(n)}</span>`)).join('')}</nav>

@@ -601,7 +601,7 @@
     const f = el.lform.elements, v = state.active, qs = new URLSearchParams(location.search);
     const payload = {
       // who
-      fullName: f.fullName.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(), ageGroup: f.ageGroup.value,
+      fullName: f.fullName.value.trim(), phone: f.phone.value.trim(), ageGroup: f.ageGroup.value,
       // what they clicked (hidden metadata)
       turfName: f.turfName.value, turfPlaceId: f.turfPlaceId.value, turfArea: f.turfArea.value,
       sport: f.sport.value, sportFilter: SPORT[state.sport].label,

@@ -46,7 +46,7 @@ The browser POSTs JSON to `/api/capture-lead`; the function validates it, adds s
 
 ```json
 {
-  "fullName": "Asha K", "phone": "+91 98765 43210", "email": "asha@example.com", "ageGroup": "18-25",
+  "fullName": "Asha K", "phone": "+91 98765 43210", "ageGroup": "18-25",
   "turfName": "Arena 7 Box Cricket", "turfPlaceId": "ChIJ…", "turfArea": "Indiranagar, Bengaluru",
   "sport": "Box Cricket", "sportFilter": "All Sports",
   "userArea": "Koramangala, Bengaluru", "userCity": "Bengaluru", "locationSource": "gps", "distanceKm": 2.4,
@@ -58,7 +58,7 @@ The browser POSTs JSON to `/api/capture-lead`; the function validates it, adds s
 ### A) Google Sheet (best for analysis)
 1. Create a Sheet → **Extensions → Apps Script**, paste:
 ```js
-const FIELDS = ['submittedAt','fullName','phone','email','ageGroup','turfName','turfPlaceId','turfArea','sport','sportFilter',
+const FIELDS = ['submittedAt','fullName','phone','ageGroup','turfName','turfPlaceId','turfArea','sport','sportFilter',
   'userArea','userCity','locationSource','distanceKm','pageUrl','referrer','utmSource','utmMedium','utmCampaign','userAgent','consent'];
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
@@ -101,6 +101,8 @@ Get a free access key at [web3forms.com](https://web3forms.com) and set `WEB3FOR
 
 ## Analytics database + admin dashboard (free, Supabase)
 
+> **Already ran `db/schema.sql` before the email field was removed?** Run this once in the Supabase SQL Editor: `alter table public.leads alter column email drop not null;`
+
 Tracks **live visitors**, **most-interacted sport**, a visit→lead funnel, and **every form entry**. Anonymous: only random ids are stored (no IP, no cookies).
 
 1. **Create the database** – [supabase.com](https://supabase.com) → New project (free plan). Pick the region closest to your users (Mumbai if available) and save the database password.
@@ -127,7 +129,7 @@ What it records:
 | **Most interacted sport** | every sport-filter click, card opened and "Call Now" click, counted per sport |
 | **Top venues / areas** | cards opened and calls per venue, sessions per area |
 | **Funnel** | sessions → opened a place → clicked Call Now → submitted the form |
-| **All form entries** | every lead (name, phone, email, age group, turf, sport, user area, UTM, source), searchable, with CSV download |
+| **All form entries** | every lead (name, phone, age group, turf, sport, user area, UTM, source), searchable, with CSV download |
 
 Notes: the Supabase free plan pauses projects after about a week of no activity (just resume it) and has a 500 MB limit, which is hundreds of thousands of events. If you operate under India's DPDP Act or GDPR, mention the anonymous analytics in your privacy policy. To purge old events, run `delete from events where created_at < now() - interval '180 days';` in the SQL Editor.
 

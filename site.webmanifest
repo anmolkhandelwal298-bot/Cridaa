@@ -1,0 +1,13 @@
+{
+  "name": "Cridaa – Sports Venue Directory",
+  "short_name": "Cridaa",
+  "description": "Find badminton courts, box cricket, football and pickleball turfs and tennis courts near you.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f9f9",
+  "theme_color": "#2bbfcf",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

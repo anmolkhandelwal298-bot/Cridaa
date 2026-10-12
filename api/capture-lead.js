@@ -5,7 +5,7 @@
  * secret ever reaches the browser — to any of:
  *   A) Database (Supabase Postgres, powers /admin)→ SUPABASE_URL + SUPABASE_SERVICE_KEY
  *   B) Google Sheet via an Apps Script web-app   → LEAD_WEBHOOK_URL (+ LEAD_WEBHOOK_SECRET)
- *   C) Web3Forms (email + dashboard)             → WEB3FORMS_ACCESS_KEY
+ *   C) Web3Forms (emails you each lead)             → WEB3FORMS_ACCESS_KEY
  * At least one must be configured.
  */
 const { rateLimit, originAllowed, send } = require('./_util');
@@ -29,12 +29,10 @@ module.exports = async function handler(req, res) {
   if (b.website) return send(res, 200, { ok: true });
 
   const name = clip(b.fullName, 80);
-  const email = clip(b.email, 120).toLowerCase();
   const phoneDigits = clip(b.phone, 20).replace(/\D/g, '');
   const errors = {};
   if (name.length < 2) errors.fullName = 'Please enter your full name';
   if (phoneDigits.length < 10 || phoneDigits.length > 13) errors.phone = 'Enter a valid phone number';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email = 'Enter a valid email';
   if (!AGE_GROUPS.includes(b.ageGroup)) errors.ageGroup = 'Select an age group';
   if (b.consent !== true) errors.consent = 'Consent is required';
   if (Object.keys(errors).length) return send(res, 422, { error: 'validation_failed', errors });
@@ -43,7 +41,6 @@ module.exports = async function handler(req, res) {
     // user details
     fullName: name,
     phone: clip(b.phone, 20),
-    email,
     ageGroup: b.ageGroup,
     // context for marketing analysis
     turfName: clip(b.turfName, 150),
@@ -81,7 +78,7 @@ module.exports = async function handler(req, res) {
 
 async function toDatabase(l) {
   await db.insert('leads', {
-    full_name: l.fullName, phone: l.phone, email: l.email, age_group: l.ageGroup,
+    full_name: l.fullName, phone: l.phone, age_group: l.ageGroup,
     turf_name: l.turfName, turf_place_id: l.turfPlaceId, turf_area: l.turfArea,
     sport: l.sport, sport_filter: l.sportFilter,
     user_area: l.userArea, user_city: l.userCity, location_source: l.locationSource, distance_km: l.distanceKm,
