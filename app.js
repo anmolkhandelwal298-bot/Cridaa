@@ -597,6 +597,8 @@
   async function submitLead(e) {
     e.preventDefault();
     el.lerr.classList.add('hidden');
+    const digits = el.lform.elements.phone.value.replace(/\D/g, '');
+    el.lform.elements.phone.setCustomValidity(digits.length >= 10 && digits.length <= 13 ? '' : 'Enter a valid phone number (10 digits)');
     if (!el.lform.checkValidity()) { el.lform.reportValidity(); return; }
     const f = el.lform.elements, v = state.active, qs = new URLSearchParams(location.search);
     const payload = {
@@ -617,15 +619,37 @@
     // Look up the venue's number from Google in parallel with saving the lead (only now, never before the form is submitted).
     const phonePromise = v.id ? api(`/places?action=phone&id=${encodeURIComponent(v.id)}`).catch(() => null) : Promise.resolve(null);
     try {
-      const res = await fetch(`${API}/capture-lead`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('json') ? await res.json() : {};
-      if (!res.ok) throw new Error(data.errors ? Object.values(data.errors).join('. ') : data.error === 'rate_limited' ? 'Too many attempts – please wait a minute.' : 'Something went wrong. Please try again.');
-      await showSuccess(payload.fullName.split(' ')[0], v, phonePromise);
+      await sendLead(payload);
     } catch (err) {
-      el.lerr.textContent = err.message;
-      el.lerr.classList.remove('hidden');
-      el.lsubmit.disabled = false; el.lsubmit.textContent = 'Continue';
+      if (err.userFacing) {                       // validation / rate-limit problems the user can fix
+        el.lerr.textContent = err.message;
+        el.lerr.classList.remove('hidden');
+        el.lsubmit.disabled = false; el.lsubmit.textContent = 'Continue';
+        return;
+      }
+      // Our server had a problem (not the user's fault). Don't block them from the venue's number.
+      console.error('Lead could not be saved:', err);
+    }
+    await showSuccess(payload.fullName.split(' ')[0], v, phonePromise);
+  }
+
+  /** POST the lead; one automatic retry for server/network failures. Throws {userFacing:true} for fixable problems. */
+  async function sendLead(payload) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(`${API}/capture-lead`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000),
+        });
+        if (res.ok) return;
+        const data = (res.headers.get('content-type') || '').includes('json') ? await res.json().catch(() => ({})) : {};
+        if (res.status === 422 || res.status === 429) {
+          throw Object.assign(new Error(data.errors ? Object.values(data.errors).join('. ') : 'Too many attempts – please wait a minute.'), { userFacing: true });
+        }
+        throw new Error(`HTTP ${res.status} ${data.error || ''} ${data.message || ''}`);
+      } catch (err) {
+        if (err.userFacing || attempt === 1) throw err;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
     }
   }
 

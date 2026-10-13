@@ -77,14 +77,22 @@ module.exports = async function handler(req, res) {
 };
 
 async function toDatabase(l) {
-  await db.insert('leads', {
+  const row = {
     full_name: l.fullName, phone: l.phone, age_group: l.ageGroup,
     turf_name: l.turfName, turf_place_id: l.turfPlaceId, turf_area: l.turfArea,
     sport: l.sport, sport_filter: l.sportFilter,
     user_area: l.userArea, user_city: l.userCity, location_source: l.locationSource, distance_km: l.distanceKm,
     page_url: l.pageUrl, referrer: l.referrer, utm_source: l.utmSource, utm_medium: l.utmMedium, utm_campaign: l.utmCampaign,
     user_agent: l.userAgent, session_id: l.sessionId || null, consent: l.consent,
-  });
+  };
+  try {
+    await db.insert('leads', row);
+  } catch (err) {
+    // A database created before the email field was removed still has "email NOT NULL" (Postgres error 23502).
+    // Retry with an empty string so those databases keep working without a manual migration.
+    if (!/23502|null value in column/i.test(err.message)) throw err;
+    await db.insert('leads', { ...row, email: '' });
+  }
 }
 
 async function toSheet(lead) {
@@ -94,6 +102,7 @@ async function toSheet(lead) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script web-apps reject preflighted JSON
     body: JSON.stringify({ secret: process.env.LEAD_WEBHOOK_SECRET || '', lead: row }),
     redirect: 'follow',
+    signal: AbortSignal.timeout(10_000),
   });
   const text = await r.text();
   if (!r.ok || !text.includes('"ok":true')) throw new Error(`sheet webhook ${r.status}: ${text.slice(0, 200)}`);
@@ -109,6 +118,7 @@ async function toWeb3Forms(lead) {
       from_name: 'Cridaa',
       ...lead,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok || d.success === false) throw new Error(`web3forms ${r.status}: ${d.message || ''}`);
